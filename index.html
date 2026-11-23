@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Quanto custa, de verdade, ter carro na sua empresa? — Movida Frotas</title>
+<meta name="description" content="Compare o custo real de uma frota própria com a locação da Movida Frotas e faça a conta com os números da sua empresa." />
+<meta name="theme-color" content="#FF5000" />
+<meta name="robots" content="noindex, nofollow" />
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<header class="bar" id="bar">
+  <a class="brand" href="#custo" aria-label="Movida Frotas">
+    <img class="logo-w" src="movida-logo-branco.svg" alt="Movida" width="110" height="34" />
+    <img class="logo-o" src="movida-logo.svg" alt="" width="110" height="34" aria-hidden="true" />
+  </a>
+  <nav class="tabs" id="tabs" aria-label="Páginas">
+    <a href="#custo" data-s="custo" class="on">O custo real</a>
+    <a href="#conta" data-s="conta">Faça a conta</a>
+  </nav>
+</header>
+
+<main>
+
+<!-- ============ PÁGINA 1 — O CUSTO REAL ============ -->
+<section id="custo" aria-label="O custo real">
+
+  <div class="hero" id="hero">
+    <svg class="motif" viewBox="0 0 420 640" fill="none" aria-hidden="true">
+      <circle class="m-dot" cx="268" cy="86" r="52" />
+      <path class="m-arc" d="M205 170 C60 290 60 430 205 560" />
+    </svg>
+
+    <div class="wrap hero-in">
+      <p class="eyebrow">Frota própria ou Movida Frotas?</p>
+      <h1 class="h-xl" id="h1"><span class="ln"><span>Ter carro próprio</span></span><span class="ln"><span>custa mais</span></span><span class="ln"><span>do que a parcela.</span></span></h1>
+
+      <div class="bignum" id="bignum">
+        <span class="bn-label">Custo real por carro</span>
+        <span class="bn-val" id="hero-val">R$ 0,00</span>
+        <span class="bn-sub">por mês, em 36 meses, rodando 1.000 km por mês<br />Fiat Argo 1.0 · sem contar combustível</span>
+      </div>
+
+      <a class="btn btn-w" href="#agua">Veja para onde vai o dinheiro <span aria-hidden="true">↓</span></a>
+    </div>
+  </div>
+
+  <div class="sec" id="agua">
+    <div class="wrap">
+      <p class="eyebrow-o">Para onde vai o dinheiro</p>
+      <h2 class="h-l">Só a ponta do iceberg aparece.</h2>
+      <p class="sub">Você vê o preço do carro. O resto corre por baixo.</p>
+
+      <div class="toggle" id="toggle" role="group" aria-label="Período">
+        <button type="button" class="on" data-v="mes">Por mês</button>
+        <button type="button" data-v="total">Em 36 meses</button>
+      </div>
+
+      <div class="stack" id="stack1"></div>
+      <div class="detail" id="detail1" aria-live="polite">Passe o cursor sobre uma faixa.</div>
+      <ul class="legend" id="legend1"></ul>
+    </div>
+  </div>
+
+  <div class="sec sec-tint" id="fatos">
+    <div class="wrap facts">
+      <article class="fact">
+        <div class="f-num"><span id="f1">0</span>%</div>
+        <p>do preço do carro vira custo em 36 meses.</p>
+        <div class="f-bar"><i id="f1bar"></i></div>
+      </article>
+      <article class="fact">
+        <div class="f-num">2/3</div>
+        <p>de tudo é desvalorização e dinheiro parado.</p>
+        <div class="f-bar"><i id="f2bar"></i></div>
+      </article>
+      <article class="fact">
+        <div class="f-num f-num-sm" id="f3">R$ 0,00</div>
+        <p>só de juros por carro, se financiar (30% de entrada, 36 parcelas).</p>
+      </article>
+    </div>
+    <div class="wrap next">
+      <a class="btn btn-o" href="#conta">Agora faça a conta com a sua frota <span aria-hidden="true">→</span></a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PÁGINA 2 — FAÇA A CONTA ============ -->
+<section id="conta" class="p2" aria-label="Faça a conta">
+  <div class="wrap">
+    <p class="eyebrow-o">Faça a conta</p>
+    <h2 class="h-l">Quanto custa a sua frota?</h2>
+    <p class="sub">Mexa nos números. O resultado muda na hora.</p>
+
+    <div class="calc">
+      <div class="controls">
+        <div class="ctl">
+          <div class="ctl-top"><label for="in-carros">Carros na frota</label><output id="out-carros"></output></div>
+          <input id="in-carros" type="range" min="1" max="200" step="1" />
+        </div>
+        <div class="ctl">
+          <div class="ctl-top"><label for="in-km">Quilômetros por carro, por mês</label><output id="out-km"></output></div>
+          <input id="in-km" type="range" min="500" max="6000" step="100" />
+        </div>
+        <div class="ctl">
+          <div class="ctl-top"><span class="lbl">Tempo com o carro</span></div>
+          <div class="seg-btns" id="in-prazo" role="group" aria-label="Tempo com o carro">
+            <button type="button" data-v="12">12 meses</button>
+            <button type="button" data-v="24">24 meses</button>
+            <button type="button" data-v="36">36 meses</button>
+            <button type="button" data-v="48">48 meses</button>
+            <button type="button" data-v="60">60 meses</button>
+          </div>
+        </div>
+        <div class="ctl">
+          <div class="ctl-top"><label for="in-preco">Preço do carro</label><output id="out-preco"></output></div>
+          <input id="in-preco" type="range" min="50000" max="200000" step="0.5" />
+          <p class="hint">Referência: Fiat Argo 1.0.</p>
+        </div>
+        <div class="ctl">
+          <div class="ctl-top"><span class="lbl">Como compraria?</span></div>
+          <div class="seg-btns two" id="in-fin" role="group" aria-label="Forma de compra">
+            <button type="button" data-v="0">À vista</button>
+            <button type="button" data-v="1">Financiado</button>
+          </div>
+        </div>
+        <div class="ctl ctl-mov">
+          <div class="ctl-top"><label for="in-mov">Mensalidade da Movida, por carro</label></div>
+          <div class="money"><span>R$</span><input id="in-mov" type="text" inputmode="decimal" placeholder="valor da sua proposta" autocomplete="off" /></div>
+          <p class="hint">Opcional. Digite o valor da proposta para comparar.</p>
+        </div>
+      </div>
+
+      <aside class="result" id="result" aria-live="polite">
+        <p class="r-tag">Frota própria</p>
+        <div class="r-main"><span id="r-mes">R$ 0,00</span></div>
+        <p class="r-cap">por carro, por mês</p>
+
+        <dl class="r-rows">
+          <div><dt>Frota toda, por mês</dt><dd id="r-frota">–</dd></div>
+          <div><dt id="r-total-l">Frota toda, em 36 meses</dt><dd id="r-total">–</dd></div>
+          <div><dt>Custo por km</dt><dd id="r-km">–</dd></div>
+        </dl>
+
+        <div class="r-fin" id="r-fin" hidden>
+          <p class="r-sub">Se financiar</p>
+          <dl class="r-rows">
+            <div><dt>Entrada hoje, por carro</dt><dd id="fin-entrada">–</dd></div>
+            <div><dt>Parcela, por carro</dt><dd id="fin-parcela">–</dd></div>
+            <div><dt>Juros, por carro</dt><dd id="fin-juros">–</dd></div>
+          </dl>
+        </div>
+
+        <div class="r-cmp" id="r-cmp" hidden>
+          <p class="r-sub">Comparando com a Movida</p>
+          <div class="cmp-bars">
+            <div class="cmp-row"><span>Própria</span><div class="cmp-track"><i id="cmp-own"></i></div><b id="cmp-own-v"></b></div>
+            <div class="cmp-row"><span>Movida</span><div class="cmp-track"><i id="cmp-mov"></i></div><b id="cmp-mov-v"></b></div>
+          </div>
+          <p class="cmp-big" id="cmp-big"></p>
+          <p class="cmp-small" id="cmp-small"></p>
+        </div>
+
+        <button class="share" id="share" type="button">Copiar link com estes números</button>
+      </aside>
+    </div>
+
+    <div class="mix">
+      <h3 class="h-s">Para onde vai o dinheiro da sua frota</h3>
+      <div class="stack" id="stack2"></div>
+      <div class="detail" id="detail2" aria-live="polite">Passe o cursor sobre uma faixa.</div>
+      <ul class="legend" id="legend2"></ul>
+    </div>
+
+    <div class="incl">
+      <h3 class="h-s">Já vem incluso na mensalidade da Movida</h3>
+      <ul class="incl-grid" id="incl"></ul>
+      <ul class="chips" id="contrato"></ul>
+    </div>
+
+    <div class="end">
+      <a class="btn btn-o" id="cta" href="#" hidden></a>
+      <p class="fine" id="fine"></p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-in">
+    <img src="movida-logo.svg" alt="Movida Frotas" width="96" height="30" />
+    <span>Movida Frotas · aluguel de carros para empresas</span>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status" hidden>Link copiado</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
