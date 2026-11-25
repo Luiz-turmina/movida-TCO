@@ -11,9 +11,22 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=4" />
+<link rel="stylesheet" href="styles.css?v=5" />
+<script>(function(){try{if(sessionStorage.getItem("mtco_ok")!=="1")document.documentElement.classList.add("locked");}catch(e){document.documentElement.classList.add("locked");}})();</script>
 </head>
 <body>
+<div class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gate-t">
+  <form class="gate-card" id="gate-form" autocomplete="off">
+    <img src="movida-logo.svg" alt="Movida Frotas" width="132" height="41" />
+    <h1 id="gate-t">Acesso restrito</h1>
+    <p>Digite a senha que você recebeu para abrir o material.</p>
+    <input id="gate-pw" type="password" placeholder="Senha" autocomplete="off" aria-label="Senha" />
+    <p class="gate-err" id="gate-err" hidden>Senha incorreta. Tente novamente.</p>
+    <button class="btn btn-o" type="submit">Entrar</button>
+  </form>
+</div>
+<noscript><p style="padding:24px;font-family:sans-serif">Ative o JavaScript para abrir este material.</p></noscript>
+
 
 <header class="bar" id="bar">
   <a class="brand" href="#custo" aria-label="Movida Frotas">
@@ -21,7 +34,7 @@
     <img class="logo-o" src="movida-logo.svg" alt="" width="110" height="34" aria-hidden="true" />
   </a>
   <nav class="tabs" id="tabs" aria-label="Páginas">
-    <a href="#custo" data-s="custo" class="on">O custo real</a>
+    <a href="#custo" data-s="custo" class="on">Início</a>
     <a href="#conta" data-s="conta">Faça a conta</a>
   </nav>
 </header>
@@ -41,52 +54,19 @@
       <p class="eyebrow">Frota própria ou Movida Frotas?</p>
       <h1 class="h-xl" id="h1"><span class="ln"><span>Ter carro próprio</span></span><span class="ln"><span>custa mais</span></span><span class="ln"><span>do que a parcela.</span></span></h1>
 
-      <div class="bignum" id="bignum">
-        <span class="bn-label">Custo real por carro</span>
-        <span class="bn-val" id="hero-val">R$ 0,00</span>
-        <span class="bn-sub">por mês, em 36 meses, rodando 1.000 km por mês<br />Fiat Argo 1.0 · sem contar combustível</span>
-      </div>
+      <p class="hero-lead" id="hero-lead">Conte rapidamente sobre quem vai dirigir e onde o carro será emplacado. Montamos a conta com médias de mercado de fontes oficiais, e você ajusta o que quiser.</p>
 
-      <a class="btn btn-w" href="#agua">Veja para onde vai o dinheiro <span aria-hidden="true">↓</span></a>
-    </div>
-  </div>
-
-  <div class="sec" id="agua">
-    <div class="wrap">
-      <p class="eyebrow-o">Para onde vai o dinheiro</p>
-      <h2 class="h-l">Só a ponta do iceberg aparece.</h2>
-      <p class="sub">Você vê o preço do carro. O resto corre por baixo.</p>
-
-      <div class="toggle" id="toggle" role="group" aria-label="Período">
-        <button type="button" class="on" data-v="mes">Por mês</button>
-        <button type="button" data-v="total">Em 36 meses</button>
-      </div>
-
-      <div class="stack" id="stack1"></div>
-      <div class="detail" id="detail1" aria-live="polite">Passe o cursor sobre uma faixa.</div>
-      <ul class="legend" id="legend1"></ul>
-    </div>
-  </div>
-
-  <div class="sec sec-tint" id="fatos">
-    <div class="wrap facts">
-      <article class="fact">
-        <div class="f-num"><span id="f1">0</span>%</div>
-        <p>do preço do carro vira custo em 36 meses.</p>
-        <div class="f-bar"><i id="f1bar"></i></div>
-      </article>
-      <article class="fact">
-        <div class="f-num">2/3</div>
-        <p>de tudo é desvalorização e dinheiro parado.</p>
-        <div class="f-bar"><i id="f2bar"></i></div>
-      </article>
-      <article class="fact">
-        <div class="f-num f-num-sm" id="f3">R$ 0,00</div>
-        <p>só de juros por carro, se financiar (30% de entrada, 36 parcelas).</p>
-      </article>
-    </div>
-    <div class="wrap next">
-      <a class="btn btn-o" href="#conta">Agora faça a conta com a sua frota <span aria-hidden="true">→</span></a>
+      <form class="intake" id="intake" autocomplete="off">
+        <div class="in-row">
+          <label class="in-f" for="h-idade"><span>Idade dos motoristas <small>(média, se forem vários)</small></span>
+            <span class="in-age"><input id="h-idade" type="number" inputmode="numeric" min="18" max="85" step="1" /><em>anos</em></span></label>
+          <label class="in-f" for="h-uf"><span>Estado do emplacamento</span><select id="h-uf"></select></label>
+        </div>
+        <label class="in-f in-mov" for="h-mov"><span>Valor da proposta de aluguel, por carro, por mês <small>(opcional)</small></span>
+          <span class="in-money"><b>R$</b><input id="h-mov" type="text" inputmode="decimal" placeholder="ex.: 3.150,00" /></span></label>
+        <button class="btn btn-w in-go" type="submit">Fazer a conta <span aria-hidden="true">→</span></button>
+        <p class="in-note">Leva menos de um minuto. Um guia rápido mostra o que fazer em cada parte.</p>
+      </form>
     </div>
   </div>
 </section>
@@ -102,15 +82,18 @@
     <div class="calc">
       <div class="controls">
         <div class="ctl ctl-perfil" id="perfil">
-          <div class="ctl-top"><span class="lbl">Sobre você</span><button class="tip-i" type="button" data-tip="perfil" aria-label="O que é isto?">i</button></div>
-          <p class="perfil-lead">Com a idade do motorista e o estado, calculamos o seguro e o IPVA médios de cada carro.</p>
+          <div class="ctl-top"><span class="lbl">Sobre você e a proposta</span><button class="tip-i" type="button" data-tip="perfil" aria-label="O que é isto?">i</button></div>
+          <p class="perfil-lead">Com a idade dos motoristas e o estado, calculamos o seguro, o IPVA e o licenciamento médios de cada carro.</p>
           <div class="perfil-row">
-            <label class="pf" for="in-idade"><span>Idade do motorista principal</span>
+            <label class="pf" for="in-idade"><span>Idade dos motoristas (média)</span>
               <span class="pf-age"><input id="in-idade" type="number" inputmode="numeric" min="18" max="85" step="1" /><em>anos</em></span></label>
-            <label class="pf" for="in-uf"><span>Estado onde o carro é emplacado</span>
+            <label class="pf" for="in-uf"><span>Estado do emplacamento</span>
               <select id="in-uf"></select></label>
           </div>
-          <p class="hint" id="perfil-hint"></p>
+          <div class="pf-mov" id="f-mov">
+            <label for="in-mov"><span>Valor da proposta de aluguel, por carro, por mês</span><button class="tip-i" type="button" data-tip="mov" aria-label="O que é isto?">i</button></label>
+            <div class="money"><span>R$</span><input id="in-mov" type="text" inputmode="decimal" placeholder="ex.: 3.150,00 (opcional)" autocomplete="off" /></div>
+          </div>
         </div>
         <div class="ctl ctl-car">
           <div class="ctl-top"><label for="combo-btn">Carro</label><button class="tip-i" type="button" data-tip="carro" aria-label="O que é isto?">i</button></div>
@@ -158,65 +141,64 @@
         <details class="assum" id="assum" open>
           <summary><span class="as-t">Premissas da conta</span><em id="assum-n" class="as-n"></em><button class="tip-i" type="button" data-tip="premissas" aria-label="O que é isto?">i</button><i class="cb-arrow" aria-hidden="true"></i></summary>
           <p class="as-lead" id="as-lead"></p>
-          <div class="seg-btns two modo" id="in-modo" role="group" aria-label="Base dos números">
-            <button type="button" data-v="mercado">Médias de mercado</button>
-            <button type="button" data-v="estudo">Premissas do estudo</button>
-          </div>
           <div class="assum-body" id="assum-body"></div>
           <button class="reset" id="reset" type="button" hidden>Voltar às médias</button>
           <div class="fontes" id="fontes"></div>
         </details>
 
-        <div class="ctl ctl-mov">
-          <div class="ctl-top"><label for="in-mov">Mensalidade da Movida, por carro</label><button class="tip-i" type="button" data-tip="mov" aria-label="O que é isto?">i</button></div>
-          <div class="money"><span>R$</span><input id="in-mov" type="text" inputmode="decimal" placeholder="valor da sua proposta" autocomplete="off" /></div>
-          <p class="hint">Opcional. Digite o valor da proposta para comparar.</p>
-        </div>
       </div>
 
       <aside class="result" id="result" aria-live="polite">
-        <p class="r-tag">Frota própria <button class="tip-i tip-w" type="button" data-tip="resultado" aria-label="O que é isto?">i</button></p>
-        <div class="r-main"><span id="r-mes">R$ 0,00</span></div>
-        <p class="r-cap">por carro, por mês</p>
-
-        <dl class="r-rows">
-          <div><dt>Frota toda, por mês</dt><dd id="r-frota">–</dd></div>
-          <div><dt id="r-total-l">Frota toda, em 36 meses</dt><dd id="r-total">–</dd></div>
-          <div><dt>Custo por km</dt><dd id="r-km">–</dd></div>
-        </dl>
-
-        <div class="r-fin" id="r-fin" hidden>
-          <p class="r-sub">Se financiar</p>
-          <dl class="r-rows">
-            <div><dt>Entrada hoje, por carro</dt><dd id="fin-entrada">–</dd></div>
-            <div><dt>Parcela, por carro</dt><dd id="fin-parcela">–</dd></div>
-            <div><dt>Juros, por carro</dt><dd id="fin-juros">–</dd></div>
-          </dl>
+        <div class="r-empty" id="r-empty">
+          <p class="r-tag">Frota própria</p>
+          <p class="re-big">Escolha um carro para ver o custo real.</p>
+          <p class="re-sub">Procure o modelo na lista ao lado. Se o seu não estiver lá, digite o preço.</p>
         </div>
-
-        <div class="r-cmp" id="r-cmp" hidden>
-          <p class="r-sub">Comparando com a Movida</p>
-          <div class="cmp-bars">
-            <div class="cmp-row"><span>Própria</span><div class="cmp-track"><i id="cmp-own"></i></div><b id="cmp-own-v"></b></div>
-            <div class="cmp-row"><span>Movida</span><div class="cmp-track"><i id="cmp-mov"></i></div><b id="cmp-mov-v"></b></div>
+        <div id="r-body" hidden>
+          <div class="r-cmp" id="r-cmp" hidden>
+            <p class="cmp-tag" id="cmp-tag"></p>
+            <p class="cmp-big" id="cmp-big"></p>
+            <p class="cmp-pct" id="cmp-pct"></p>
+            <div class="cmp-bars">
+              <div class="cmp-row"><span>Frota própria</span><div class="cmp-track"><i id="cmp-own"></i></div><b id="cmp-own-v"></b></div>
+              <div class="cmp-row"><span>Movida</span><div class="cmp-track"><i id="cmp-mov"></i></div><b id="cmp-mov-v"></b></div>
+            </div>
+            <dl class="cmp-grid" id="cmp-grid"></dl>
+            <p class="cmp-small" id="cmp-small"></p>
           </div>
-          <p class="cmp-big" id="cmp-big"></p>
-          <p class="cmp-small" id="cmp-small"></p>
-        </div>
 
-        <button class="share" id="share" type="button">Copiar link com estes números</button>
+          <p class="r-tag">Frota própria <button class="tip-i tip-w" type="button" data-tip="resultado" aria-label="O que é isto?">i</button></p>
+          <div class="r-main"><span id="r-mes">R$ 0,00</span></div>
+          <p class="r-cap">por carro, por mês</p>
+
+          <dl class="r-rows">
+            <div><dt>Frota toda, por mês</dt><dd id="r-frota">–</dd></div>
+            <div><dt id="r-total-l">Frota toda, em 36 meses</dt><dd id="r-total">–</dd></div>
+            <div><dt>Custo por km</dt><dd id="r-km">–</dd></div>
+          </dl>
+
+          <div class="r-fin" id="r-fin" hidden>
+            <p class="r-sub">Se financiar</p>
+            <dl class="r-rows">
+              <div><dt>Entrada hoje, por carro</dt><dd id="fin-entrada">–</dd></div>
+              <div><dt>Parcela, por carro</dt><dd id="fin-parcela">–</dd></div>
+              <div><dt>Juros, por carro</dt><dd id="fin-juros">–</dd></div>
+            </dl>
+          </div>
+
+          <button class="share" id="share" type="button">Copiar link com estes números</button>
+        </div>
       </aside>
     </div>
 
     <div class="passo" id="passo">
       <h3 class="h-s">A conta, passo a passo <button class="tip-i" type="button" data-tip="passo" aria-label="O que é isto?">i</button></h3>
-      <p class="medio" id="medio"></p>
-      <div class="tbl-wrap">
-        <table class="math" id="math">
-          <thead><tr><th>Item</th><th>Como calculamos</th><th class="n">No prazo</th><th class="n">Por mês</th></tr></thead>
-          <tbody></tbody>
-          <tfoot></tfoot>
-        </table>
+      <p class="passo-lead">Cada parte do custo de um carro, explicada e calculada com os seus números. Tudo muda na hora quando você ajusta qualquer campo.</p>
+      <div class="passo-empty" id="passo-empty">Escolha um carro para ver a conta passo a passo.</div>
+      <div id="passo-body" hidden>
+        <div class="st st-0" id="medio"></div>
+        <ol class="steps" id="steps"></ol>
+        <div class="st-total" id="st-total"></div>
       </div>
       <p class="hint">Valores por carro. Combustível, multas, estacionamento e pedágios ficam de fora porque custam o mesmo comprando ou alugando.</p>
     </div>
@@ -253,10 +235,12 @@
 <div class="pop" id="pop" role="dialog" aria-live="polite" hidden></div>
 <div class="toast" id="toast" role="status" hidden>Link copiado</div>
 
+<script>window.MTCO_HASH="911fb1f8393315e81759492b8b32425f1de75d6c23298ef23f2dec9049c9b227";</script>
+<script src="gate.js?v=5"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
-<script src="data.js?v=4"></script>
-<script src="mercado.js?v=4"></script>
-<script src="app.js?v=4"></script>
+<script src="data.js?v=5"></script>
+<script src="mercado.js?v=5"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>

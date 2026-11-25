@@ -1,7 +1,7 @@
-/* app.js — modelo de custo, interações, popups e movimento. Premissas e textos vêm de data.js */
+/* app.js — modelo de custo, interações, popups, guia e movimento. Textos em data.js; números de mercado em mercado.js */
 (function () {
   "use strict";
-  var D = window.MOVIDA_DATA, P = D.premissas;
+  var D = window.MOVIDA_DATA, P = D.premissas, M = window.MOVIDA_MERCADO || {};
   var REDUCE = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var HAS = !!window.gsap && !!window.ScrollTrigger && !REDUCE;
   if (HAS) gsap.registerPlugin(ScrollTrigger);
@@ -11,7 +11,7 @@
   function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function brl(v, d) {
     d = d == null ? 2 : d;
-    return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: d, maximumFractionDigits: d }).replace(/ /g, " ");
+    return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: d, maximumFractionDigits: d }).replace(/ /g, " ");
   }
   function nf(v, d) { return v.toLocaleString("pt-BR", { minimumFractionDigits: d || 0, maximumFractionDigits: d || 0 }); }
   function pct(v, d) { return nf(v * 100, d == null ? 0 : d) + "%"; }
@@ -24,25 +24,25 @@
     var v = parseFloat(s); return isNaN(v) ? 0 : v;
   }
 
-  /* ---------- modelo (mesmas contas do estudo, agora com premissas ajustáveis) ---------- */
+  /* ---------- modelo ---------- */
   function modelo(o) {
     var anos = o.prazo / 12, medio = o.preco * (1 + o.res) / 2;
     var c = {
-      medio: medio,
+      anos: anos, medio: medio, fimValor: o.preco * o.res,
       depr: o.preco * (1 - o.res),
       capital: medio * o.rend * anos,
       seguro: medio * o.seg * anos,
       ipva: medio * o.ipva * anos,
       lic: o.lic * anos,
-      manut: o.rev * (o.km * o.prazo / P.revisao.kmCada),
-      pneus: o.pneu * (o.km * o.prazo / P.pneus.kmCada),
-      gestao: o.horas * o.hora * o.prazo,
-      indisp: o.parado * o.prazo
+      nRev: o.km * o.prazo / P.revisaoKm, nPneu: o.km * o.prazo / P.pneusKm,
+      diasTot: o.dias * anos
     };
+    c.manut = o.rev * c.nRev; c.pneus = o.pneu * c.nPneu;
+    c.gestao = o.horas * o.hora * o.prazo;
+    c.indisp = c.diasTot * o.diaria;
     c.total = c.depr + c.capital + c.seguro + c.ipva + c.lic + c.manut + c.pneus + c.gestao + c.indisp;
     c.mensal = c.total / o.prazo;
     c.porKm = c.mensal / o.km;
-    c.fimValor = o.preco * o.res;
     c.grupos = [
       { k: "desval", v: c.depr }, { k: "parado", v: c.capital }, { k: "seguro", v: c.seguro },
       { k: "impostos", v: c.ipva + c.lic }, { k: "manut", v: c.manut + c.pneus }, { k: "equipe", v: c.gestao + c.indisp }
@@ -54,62 +54,71 @@
     var pmt = fin * i / (1 - Math.pow(1 + i, -prazo));
     return { entrada: ent, parcela: pmt, juros: pmt * prazo - fin };
   }
+
+  /* ---------- médias de mercado (mercado.js) ---------- */
+  var CARS = D.carros;
   function ufEst(uf) { return D.estados.filter(function (x) { return x.uf === uf; })[0] || { uf: uf, nome: uf, ipva: 4 }; }
   function ufRate(uf) { return ufEst(uf).ipva; }
-
-  /* ---------- médias de mercado (mercado.js) e premissas do estudo (data.js) ---------- */
-  var M = window.MOVIDA_MERCADO || {};
-  var CARS = [{ g: "REF", n: "Fiat Argo 1.0", p: D.precoReferencia, nt: "preço de referência usado no estudo" }].concat(D.carros);
-  function carInfo(c) { return c && M.carros ? M.carros[c.g + "|" + c.n] || null : null; }
+  function carKey(c) { return c.g + "|" + c.n; }
+  function carInfo(c) { return c && M.carros ? M.carros[carKey(c)] || null : null; }
   function ageFactor(age) {
     var pts = (M.seguro && M.seguro.idade) || [[21.5, 1.54], [30.5, 1.12], [40.5, 1.01], [50.5, 0.97], [60, 0.89]];
     if (age <= pts[0][0]) return pts[0][1];
     for (var i = 1; i < pts.length; i++) if (age <= pts[i][0]) { var a = pts[i - 1], b = pts[i]; return a[1] + (b[1] - a[1]) * (age - a[0]) / (b[0] - a[0]); }
     return pts[pts.length - 1][1];
   }
-  /* seguro estimado (% do valor do carro ao ano) */
   function segMercado(car, uf, idade) {
     var ci = carInfo(car), sg = M.seguro || {};
     var casco = ci ? ci.casco : sg.cascoPadrao || 0.025;
     var uf1 = (sg.uf && sg.uf[uf]) || 1, rc = (sg.rc && sg.rc[uf]) || sg.rcNac || 1.3;
     return casco * uf1 * ageFactor(idade) * rc * 100;
   }
-  function tierRev(p) { var T = M.revisao || []; for (var i = 0; i < T.length; i++) if (p < T[i].ate) return T[i]; return T[T.length - 1]; }
-  function tierPneu(p) { var T = M.pneus || []; for (var i = 0; i < T.length; i++) if (p < T[i].ate) return T[i]; return T[T.length - 1]; }
-  /* valores do estudo de referência, em unidades de tela */
-  var STUDY = function (S) { return { res: P.residual[S.prazo] * 100, rend: P.custoCapitalAA * 100, seg: P.seguroAA * 100, lic: P.licenciamentoAno, rev: P.revisao.valor, pneu: P.pneus.valor, horas: P.gestaoHorasMes, hora: P.gestaoHora, parado: P.indisponibilidadeMes }; };
+  function tier(list, p) { list = list || []; for (var i = 0; i < list.length; i++) if (p < list[i].ate) return list[i]; return list[list.length - 1] || { v: 0, txt: "" }; }
+  var TAGS = { o: "fonte oficial", v: "verificado", d: "dado oficial + estimativa", r: "referência de mercado", e: "estimativa" };
+  function tagCls(t) { return t === "o" ? " of" : t === "v" ? " ve" : ""; }
+
   /* média de mercado de cada premissa: valor + selo + fonte + explicação curta */
   function mkt(id, S) {
-    var car = CARS[S.car] || CARS[0], ci = carInfo(car), pz = S.prazo, anos = pz / 12;
+    var car = CARS[S.car] || null, ci = carInfo(car), pz = S.prazo, anos = pz / 12;
     switch (id) {
       case "res":
-        var r = ci && ci.res && ci.res[pz] != null ? ci.res[pz] : P.residual[pz] * 100;
-        if (car.blind && car.base) r = r * car.base / car.p;
-        return { v: r, tag: ci && ci.res ? "o" : "e", src: "Tabela FIPE, nov/2026",
-          det: ci && ci.res ? ci.resTxt.replace("{a}", nf(anos, 0) + (anos === 1 ? " ano" : " anos")).replace("{p}", nf(ci.res[pz], 0)) + (car.blind ? " A blindagem não é recuperada na revenda (premissa nossa)." : "") : "Sem série FIPE para este modelo: usamos o valor do estudo." };
-      case "rend": return { v: (M.selic && M.selic.rend && M.selic.rend[pz]) || P.custoCapitalAA * 100, tag: "o", src: "Banco Central (Selic e Focus)", det: M.selic ? "Selic hoje " + nf(M.selic.meta, 2) + "% ao ano; o mercado projeta " + nf(M.selic.focus[2027], 2) + "% no fim de 2027 e " + nf(M.selic.focus[2028], 1) + "% no de 2028. É a média esperada nos próximos " + pz + " meses, antes de imposto." : "" };
+        var r, txt, tg = "o";
+        if (ci && ci.res && ci.res[pz] != null) { r = ci.res[pz]; txt = ci.resTxt.replace("{a}", nf(anos, 0) + (anos === 1 ? " ano" : " anos")).replace("{p}", nf(r, 0)); }
+        else { var cp = M.curvaPadrao || {}; r = cp[pz] != null ? cp[pz] : 65; txt = "Sem série própria na FIPE para este carro: usamos a mediana dos modelos pesquisados (" + nf(r, 0) + "% do 0 km com " + nf(anos, 0) + (anos === 1 ? " ano" : " anos") + " de uso)."; tg = "r"; }
+        if (car && car.blind && car.base) { r = r * car.base / car.p; txt += " A blindagem não é recuperada na revenda."; }
+        return { v: r, tag: tg, src: "Tabela FIPE, nov/2026", det: txt };
+      case "rend": return { v: (M.selic && M.selic.rend && M.selic.rend[pz]) || 12, tag: "o", src: "Banco Central (Selic e Focus)", det: M.selic ? "Selic hoje " + nf(M.selic.meta, 2) + "% ao ano; o mercado projeta " + nf(M.selic.focus[2027], 2) + "% no fim de 2027 e " + nf(M.selic.focus[2028], 1) + "% no de 2028. É a média esperada nos próximos " + pz + " meses, antes de imposto." : "" };
       case "seg":
         var sv = segMercado(car, S.uf, S.idade), anual = sv / 100 * S.preco * (1 + mkt("res", S).v / 100) / 2;
-        return { v: sv, tag: "d", src: "SUSEP (dados abertos) e IBGE", det: (ci && ci.cascoTxt ? ci.cascoTxt + " " : "") + "Estado " + S.uf + ", motorista de " + S.idade + " anos, apólice completa. Cerca de " + brl(anual, 0) + " por ano em média." };
-      case "lic": return { v: P.licenciamentoAno, tag: "e", src: "Estudo de referência", det: "Varia por estado; confirme no Detran." };
-      case "rev": var tr = tierRev(S.preco); return { v: tr.v, tag: "r", src: "Volkswagen, pacotes Vale+ (out/2026)", det: tr.txt };
-      case "pneu": var tp = tierPneu(S.preco); return { v: tp.v, tag: "e", src: "Estudo + Pneubest (nov/2026)", det: tp.txt };
-      case "parado": return { v: P.indisponibilidadeMes, tag: "e", src: "Estimativa (diária Localiza)", det: "4 dias parado por ano × diária de R$ 150 ÷ 12 meses." };
-      case "horas": return { v: P.gestaoHorasMes, tag: "e", src: "Estudo de referência", det: "Multas, documentos, IPVA, seguro, oficina e venda do carro." };
-      case "hora": return { v: M.hora ? M.hora.valor : P.gestaoHora, tag: "d", src: "IBGE (PNAD Contínua, jul–set/2026)", det: M.hora ? "R$ " + nf(M.hora.salario, 0) + " por mês ÷ " + nf(M.hora.horasMes, 1) + " h × " + nf(M.hora.encargos, 1) + " de encargos (estimativa)." : "" };
+        return { v: sv, tag: "d", src: "SUSEP (dados abertos) e IBGE", det: (ci && ci.cascoTxt ? ci.cascoTxt + " " : "") + "Estado " + S.uf + ", motoristas de " + S.idade + " anos, apólice completa. Cerca de " + brl(anual, 0) + " por ano em média." };
+      case "lic":
+        var L = (M.licenciamento && M.licenciamento.uf && M.licenciamento.uf[S.uf]);
+        if (L != null) return { v: L, tag: "v", src: "DCC Trânsito, tabela 2026", det: "" };
+        return { v: (M.licenciamento && M.licenciamento.mediana) || 170, tag: "r", src: "DCC Trânsito, tabela 2026", det: "O estado não divulga o valor na fonte: usamos a mediana dos demais estados." };
+      case "rev":
+        if (ci && ci.rev) return { v: ci.rev.v, tag: ci.rev.tag || "v", src: ci.rev.src, det: ci.rev.txt };
+        var tr = tier(M.revisao, S.preco); return { v: tr.v, tag: "r", src: "Média da faixa de carro", det: tr.txt };
+      case "pneu":
+        if (ci && ci.pneu) return { v: ci.pneu.v, tag: ci.pneu.tag || "r", src: ci.pneu.src, det: ci.pneu.txt };
+        var tp = tier(M.pneus, S.preco); return { v: tp.v, tag: "r", src: "Média da faixa de carro", det: tp.txt };
+      case "dias": var pk = M.parado || { dias: 7, txt: "" }; return { v: pk.dias, tag: "e", src: "Estimativa", det: pk.txt };
+      case "diaria":
+        if (ci && ci.diaria) return { v: ci.diaria.v, tag: ci.diaria.tag || "r", src: "Preços de aluguel avulso, 2026", det: ci.diaria.txt };
+        var td = tier(M.diaria, S.preco); return { v: td.v, tag: "r", src: "Preços de aluguel avulso, 2026", det: td.txt };
+      case "horas": return { v: P.gestaoHorasMes, tag: "e", src: "Estimativa", det: "Multas, documentos, IPVA, seguro, oficina e venda do carro." };
+      case "hora": return { v: M.hora ? M.hora.valor : 34, tag: "d", src: "IBGE (PNAD Contínua, jul–set/2026)", det: M.hora ? "R$ " + nf(M.hora.salario, 0) + " por mês ÷ " + nf(M.hora.horasMes, 1) + " h × " + nf(M.hora.encargos, 1) + " de encargos (estimativa)." : "" };
     }
     return { v: 0, tag: "e", src: "", det: "" };
   }
-  var TAGS = { o: "fonte oficial", d: "dado oficial + estimativa", r: "referência de mercado", e: "estimativa" };
-  /* valor padrão (sem ajuste do cliente) e valor em uso */
-  function defVal(id, S) { return S.modo === "estudo" ? STUDY(S)[id] : mkt(id, S).v; }
+  function defVal(id, S) { return mkt(id, S).v; }
   function val(id, S) { return S.a[id] != null ? S.a[id] : defVal(id, S); }
   function optsFrom(S) {
     return {
       preco: S.preco, km: S.km, prazo: S.prazo,
       res: val("res", S) / 100, rend: val("rend", S) / 100, seg: val("seg", S) / 100,
       ipva: (S.ipva != null ? S.ipva : ufRate(S.uf)) / 100,
-      lic: val("lic", S), rev: val("rev", S), pneu: val("pneu", S), horas: val("horas", S), hora: val("hora", S), parado: val("parado", S)
+      lic: val("lic", S), rev: val("rev", S), pneu: val("pneu", S), horas: val("horas", S), hora: val("hora", S),
+      dias: val("dias", S), diaria: val("diaria", S)
     };
   }
 
@@ -121,14 +130,9 @@
     var o = { v: from };
     el._tw = gsap.to(o, { v: to, duration: 0.5, ease: "power2.out", onUpdate: function () { el.textContent = fmt(o.v); } });
   }
-  function countOnce(el, to, fmt, dur, delay) {
-    el._cur = to;
-    if (!HAS) { el.textContent = fmt(to); return; }
-    var o = { v: 0 };
-    gsap.to(o, { v: to, duration: dur || 1.6, delay: delay || 0, ease: "power3.out", onUpdate: function () { el.textContent = fmt(o.v); } });
-  }
+  function moneyFmt(v) { return brl(v, 2); }
 
-  /* ---------- barra empilhada reutilizável ---------- */
+  /* ---------- barra empilhada ---------- */
   var META = {};
   D.grupos.forEach(function (g) { META[g.k] = g; });
   function makeStack(boxSel, legSel, detSel) {
@@ -241,43 +245,23 @@
   });
   $("#guide-btn").addEventListener("click", startTour);
 
-  /* =====================  PÁGINA 1  ===================== */
-  var BASE_S = { km: 1000, prazo: 36, preco: D.precoReferencia, uf: "RJ", idade: 40, car: 0, modo: "estudo", ipva: null, a: {} };
-  var base = modelo(optsFrom(BASE_S));
-  var st1 = makeStack("#stack1", "#legend1", "#detail1");
-  var modo = "mes";
-  function upd1() { st1.update(base.grupos, modo === "mes" ? 36 : 1, modo === "mes" ? "por mês" : "em 36 meses"); }
-  upd1();
-  $("#toggle").addEventListener("click", function (e) {
-    var b = e.target.closest("button"); if (!b) return;
-    modo = b.getAttribute("data-v");
-    $$("#toggle button").forEach(function (x) { x.classList.toggle("on", x === b); });
-    upd1();
-  });
-  var fatoPreco = base.total / D.precoReferencia;
-  var fatoDois = (base.depr + base.capital) / base.total;
-  var juros36 = financ(D.precoReferencia, 36).juros;
-  $("#f1bar").setAttribute("data-w", (fatoPreco * 100).toFixed(1));
-  $("#f2bar").setAttribute("data-w", (fatoDois * 100).toFixed(1));
-  function setBars() { $$(".f-bar i").forEach(function (i) { i.style.width = i.getAttribute("data-w") + "%"; }); }
-  function moneyFmt(v) { return brl(v, 2); }
-  function intFmt(v) { return nf(v, 0); }
-
-  /* =====================  PÁGINA 2  ===================== */
+  /* =====================  ESTADO E CONTROLES  ===================== */
   var S = {
-    carros: D.padrao.carros, km: D.padrao.km, prazo: D.padrao.prazo, preco: D.precoReferencia, fin: 0, mov: 0, car: 0,
-    uf: D.ufPadrao, idade: 40, modo: "mercado", ipva: null, a: {}
+    carros: D.padrao.carros, km: D.padrao.km, prazo: D.padrao.prazo, preco: 0, fin: 0, mov: 0, car: -1,
+    uf: D.ufPadrao, idade: 40, ipva: null, a: {}
   };
+  var hasCar = function () { return S.preco > 0; };
 
   var AS = [
     { grupo: "O carro", id: "res", t: "Quanto o carro vale no fim", min: 20, max: 95, step: 0.5, fmt: function (v) { return nf(v, 1) + "%"; } },
     { id: "rend", t: "Rendimento do dinheiro, ao ano", min: 0, max: 25, step: 0.1, fmt: function (v) { return nf(v, 1) + "%"; } },
     { id: "seg", t: "Seguro, ao ano", min: 1, max: 12, step: 0.05, fmt: function (v) { return nf(v, 2) + "%"; } },
     { grupo: "Impostos", id: "ipva", special: true },
-    { id: "lic", t: "Licenciamento, por ano", min: 0, max: 1000, step: 10, fmt: function (v) { return brl(v, 0); } },
-    { grupo: "Manutenção", id: "rev", t: "Revisão, a cada 10.000 km", min: 300, max: 3500, step: 1, fmt: function (v) { return brl(v, 0); } },
-    { id: "pneu", t: "Jogo de pneus, a cada 40.000 km", min: 1000, max: 8000, step: 10, fmt: function (v) { return brl(v, 0); } },
-    { grupo: "Imprevistos e equipe", id: "parado", t: "Imprevistos e carro parado, por mês", min: 0, max: 500, step: 5, fmt: function (v) { return brl(v, 0); } },
+    { id: "lic", t: "Licenciamento, por ano", min: 0, max: 1000, step: 1, fmt: function (v) { return brl(v, 0); } },
+    { grupo: "Manutenção", id: "rev", t: "Revisão, a cada 10.000 km", min: 300, max: 4000, step: 1, fmt: function (v) { return brl(v, 0); } },
+    { id: "pneu", t: "Jogo de 4 pneus, a cada 40.000 km", min: 800, max: 12000, step: 10, fmt: function (v) { return brl(v, 0); } },
+    { grupo: "Carro parado e equipe", id: "dias", t: "Dias parado por ano", min: 0, max: 40, step: 0.5, fmt: function (v) { return nf(v, 1) + (v === 1 ? " dia" : " dias"); } },
+    { id: "diaria", t: "Diária de um carro equivalente", min: 40, max: 900, step: 1, fmt: function (v) { return brl(v, 0); } },
     { id: "horas", t: "Tempo da equipe, horas por mês", min: 0, max: 10, step: 0.5, fmt: function (v) { return nf(v, 1) + " h"; } },
     { id: "hora", t: "Custo da hora da equipe", min: 10, max: 200, step: 0.5, fmt: function (v) { return brl(v, 1); } }
   ];
@@ -288,7 +272,6 @@
   }
   function clearOv() { for (var i = 0; i < arguments.length; i++) S.a[arguments[i]] = null; }
 
-  /* monta o painel de premissas */
   (function buildAssum() {
     var html = "", last = "";
     AS.forEach(function (a) {
@@ -305,10 +288,8 @@
   })();
 
   function renderAssum() {
-    var n = 0, est = S.modo === "estudo";
-    $$("#in-modo button").forEach(function (b) { b.classList.toggle("on", b.getAttribute("data-v") === S.modo); });
-    $("#as-lead").textContent = est ? "Números do estudo executivo de referência (Fiat Argo, 36 meses). Você pode ajustar cada um."
-      : "Cada número abaixo é a média de mercado para o carro, o estado e a idade escolhidos, com a fonte indicada. Você pode ajustar qualquer um.";
+    var n = 0;
+    $("#as-lead").textContent = "Cada número abaixo é a média de mercado para o carro, o estado e a idade escolhidos, com a fonte indicada. Você pode ajustar qualquer um.";
     AS.forEach(function (a) {
       var wrap = $('.ac[data-id="' + a.id + '"]'), ch = isChanged(a); if (ch) n++;
       wrap.classList.toggle("chg", ch);
@@ -322,20 +303,15 @@
       if (a.special) {
         var e = ufEst(S.uf);
         $("#as-ipva-l").textContent = "IPVA (" + S.uf + "), ao ano";
-        mk.innerHTML = (est ? "Estudo: " : "Média: ") + "<b>" + nf(e.ipva, 2) + "%</b> <span class=\"est\">referência</span> <span class=\"src\">levantamento na imprensa, 2026</span>" + back;
-        det.textContent = (e.nota ? e.nota + " " : "") + "Não conferido na Secretaria da Fazenda: confirme.";
+        mk.innerHTML = "Média: <b>" + nf(e.ipva, 2) + "%</b> <span class=\"est ve\">verificado</span> <span class=\"src\">CNN Brasil, ValorFinal e AutoDossiê</span>" + back;
+        det.textContent = e.faixa ? "Faixa no estado: " + e.faixa + "." : "";
         return;
       }
-      if (est) {
-        mk.innerHTML = "Estudo: <b>" + fmt(defVal(a.id, S)) + "</b> <span class=\"src\">estudo executivo de referência</span>" + back;
-        det.textContent = "";
-      } else {
-        var m = mkt(a.id, S);
-        mk.innerHTML = "Média de mercado: <b>" + fmt(m.v) + "</b> <span class=\"est" + (m.tag === "o" ? " of" : "") + "\">" + TAGS[m.tag] + "</span> <span class=\"src\">" + esc(m.src) + "</span>" + back;
-        det.textContent = m.det;
-      }
+      var m = mkt(a.id, S);
+      mk.innerHTML = "Média de mercado: <b>" + fmt(m.v) + "</b> <span class=\"est" + tagCls(m.tag) + "\">" + TAGS[m.tag] + "</span> <span class=\"src\">" + esc(m.src) + "</span>" + back;
+      det.textContent = m.det;
     });
-    $("#assum-n").textContent = n ? n + (n === 1 ? " ajustada" : " ajustadas") : (est ? "do estudo" : "médias de mercado");
+    $("#assum-n").textContent = n ? n + (n === 1 ? " ajustada" : " ajustadas") : "médias de mercado";
     $("#assum-n").classList.toggle("on", n > 0);
     $("#reset").hidden = n === 0;
     return n;
@@ -351,24 +327,39 @@
     var id = b.getAttribute("data-back"); if (id === "ipva") S.ipva = null; else S.a[id] = null; update();
   });
   $("#reset").addEventListener("click", function () { S.a = {}; S.ipva = null; update(); });
-  $("#in-modo").addEventListener("click", function (e) { var b = e.target.closest("button"); if (!b) return; S.modo = b.getAttribute("data-v"); S.a = {}; update(); });
-  /* o ícone "i" dentro do resumo não deve abrir/fechar o painel */
   $("#assum summary").addEventListener("click", function (e) { if (e.target.closest(".tip-i")) e.preventDefault(); });
 
-  /* ---------- perfil: idade e estado ---------- */
-  var inIdade = $("#in-idade"), inUf = $("#in-uf");
-  inUf.innerHTML = D.estados.map(function (e) { return '<option value="' + e.uf + '">' + esc(e.nome) + " (" + e.uf + ")</option>"; }).join("");
-  inIdade.addEventListener("input", function () { var v = parseInt(inIdade.value, 10); if (v >= 18 && v <= 85) { S.idade = v; clearOv("seg"); update(); } });
+  /* ---------- perfil: idade, estado e proposta (página 2) + formulário da página 1 ---------- */
+  var inIdade = $("#in-idade"), inUf = $("#in-uf"), inMov = $("#in-mov"), hIdade = $("#h-idade"), hUf = $("#h-uf"), hMov = $("#h-mov");
+  var UFOPTS = D.estados.map(function (e) { return '<option value="' + e.uf + '">' + esc(e.nome) + " (" + e.uf + ")</option>"; }).join("");
+  inUf.innerHTML = UFOPTS; hUf.innerHTML = UFOPTS;
+  function setIdade(v) { v = parseInt(v, 10); if (v >= 18 && v <= 85) { S.idade = v; clearOv("seg"); update(); } }
+  function setUf(v) { S.uf = v; S.ipva = null; clearOv("seg", "lic"); update(); }
+  function setMov(v, from) { S.mov = parseMoney(v); if (from !== inMov) inMov.value = S.mov > 0 && from !== "x" ? v : inMov.value; if (from !== hMov) hMov.value = S.mov > 0 ? v : hMov.value; update(); }
+  inIdade.addEventListener("input", function () { setIdade(inIdade.value); });
+  hIdade.addEventListener("input", function () { setIdade(hIdade.value); });
   inIdade.addEventListener("blur", function () { inIdade.value = S.idade; });
-  inUf.addEventListener("change", function () { S.uf = inUf.value; S.ipva = null; clearOv("seg"); update(); });
+  hIdade.addEventListener("blur", function () { hIdade.value = S.idade; });
+  inUf.addEventListener("change", function () { setUf(inUf.value); });
+  hUf.addEventListener("change", function () { setUf(hUf.value); });
+  inMov.addEventListener("input", function () { setMov(inMov.value, inMov); });
+  hMov.addEventListener("input", function () { setMov(hMov.value, hMov); });
+  [inMov, hMov].forEach(function (el) { el.addEventListener("blur", function () { if (S.mov > 0) { inMov.value = nf(S.mov, 2); hMov.value = nf(S.mov, 2); } else { inMov.value = ""; hMov.value = ""; } }); });
+  $("#intake").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var go = $("#conta"); if (!go) return;
+    var y = scrollY + go.getBoundingClientRect().top - 8;
+    window.scrollTo({ top: y, behavior: REDUCE ? "auto" : "smooth" });
+    setTimeout(startTour, REDUCE ? 50 : 900);
+  });
 
   /* ---------- seletor de carros ---------- */
-  var combo = $("#combo"), comboBtn = $("#combo-btn"), comboPop = $("#combo-pop"), carQ = $("#car-q"), comboList = $("#combo-list");
+  var comboBtn = $("#combo-btn"), comboPop = $("#combo-pop"), carQ = $("#car-q"), comboList = $("#combo-list");
   function buildList(q) {
     var nq = norm(q || ""), groups = [], map = {};
     CARS.forEach(function (c, i) {
       if (nq && norm(c.n + " " + c.g).indexOf(nq) < 0) return;
-      var key = (c.blind ? "Grupo " + c.g + " · blindados" : c.g === "REF" ? "Referência do estudo" : "Grupo " + c.g);
+      var key = c.blind ? "Grupo " + c.g + " · blindados" : "Grupo " + c.g;
       if (!map[key]) { map[key] = { name: key, items: [] }; groups.push(map[key]); }
       map[key].items.push({ c: c, i: i });
     });
@@ -386,77 +377,94 @@
   carQ.addEventListener("keydown", function (e) { if (e.key === "Enter") { var f = $(".co", comboList); if (f) f.click(); e.preventDefault(); } });
   comboList.addEventListener("click", function (e) {
     var b = e.target.closest(".co"); if (!b) return;
-    S.car = +b.getAttribute("data-i"); S.preco = CARS[S.car].p; clearOv("res", "rev", "pneu", "seg"); closeCombo(); carQ.value = ""; update();
+    S.car = +b.getAttribute("data-i"); S.preco = CARS[S.car].p; clearOv("res", "rev", "pneu", "seg", "diaria"); closeCombo(); carQ.value = ""; update();
   });
   document.addEventListener("click", function (e) { if (!e.target.closest("#combo")) closeCombo(); });
 
   /* ---------- URL e controles ---------- */
-  var q = new URLSearchParams(location.search);
+  var q = new URLSearchParams(location.search), fromLink = false;
   function num(k) { var v = parseFloat((q.get(k) || "").replace(",", ".")); return isNaN(v) ? null : v; }
   if (num("carros") != null) S.carros = clamp(Math.round(num("carros")), 1, 200);
   if (num("km") != null) S.km = clamp(Math.round(num("km") / 100) * 100, 500, 6000);
-  if (num("prazo") != null && P.residual[num("prazo")]) S.prazo = num("prazo");
+  if (num("prazo") != null && [12, 24, 36, 48, 60].indexOf(num("prazo")) > -1) S.prazo = num("prazo");
   if (num("preco") != null) S.preco = clamp(num("preco"), 20000, 600000);
+  if (num("m") != null && CARS[num("m")]) { S.car = num("m"); if (num("preco") == null) S.preco = CARS[S.car].p; }
+  else if (S.preco > 0) { for (var i0 = 0; i0 < CARS.length; i0++) if (Math.abs(CARS[i0].p - S.preco) < 0.5) { S.car = i0; break; } }
   if (num("movida") != null) S.mov = Math.max(0, num("movida"));
   if (q.get("financiar") === "1") S.fin = 1;
   if (q.get("uf") && D.estados.some(function (e) { return e.uf === q.get("uf"); })) S.uf = q.get("uf");
   if (num("ipva") != null) S.ipva = clamp(num("ipva"), 0, 6);
   if (num("idade") != null) S.idade = clamp(Math.round(num("idade")), 18, 85);
-  if (q.get("modo") === "estudo") S.modo = "estudo";
   AS.forEach(function (a) { if (!a.special && num("a_" + a.id) != null) S.a[a.id] = clamp(num("a_" + a.id), a.min, a.max); });
-  (function matchCar() { for (var i = 0; i < CARS.length; i++) if (Math.abs(CARS[i].p - S.preco) < 0.5) { S.car = i; break; } })();
+  fromLink = q.has("carros") || q.has("preco") || q.has("m") || q.has("uf") || q.has("idade");
 
-  var inCar = $("#in-carros"), inKm = $("#in-km"), inPreco = $("#in-preco"), inPrecoN = $("#in-preco-n"), inMov = $("#in-mov");
-  inCar.value = S.carros; inKm.value = S.km; inPreco.value = S.preco; inPrecoN.value = nf(S.preco, 2);
-  if (S.mov > 0) inMov.value = nf(S.mov, 2);
+  var inCar = $("#in-carros"), inKm = $("#in-km"), inPreco = $("#in-preco"), inPrecoN = $("#in-preco-n");
+  inCar.value = S.carros; inKm.value = S.km;
   var st2 = makeStack("#stack2", "#legend2", "#detail2");
-
   function rangeFill(r) { r.style.setProperty("--p", ((r.value - r.min) / (r.max - r.min)) * 100 + "%"); }
 
-  /* ---------- tabela "passo a passo" ---------- */
-  function renderMath(c, o) {
-    var anos = o.prazo / 12, A = nf(anos, 0) + (anos === 1 ? " ano" : " anos"), ajust = {};
+  /* ---------- passo a passo didático ---------- */
+  function term(label, value, last) { return '<span class="eq-t' + (last ? " res" : "") + '"><small>' + esc(label) + "</small><b>" + esc(value) + "</b></span>"; }
+  function op(s) { return '<span class="eq-op" aria-hidden="true">' + s + "</span>"; }
+  function renderSteps(c, o) {
+    var A = nf(c.anos, c.anos % 1 ? 1 : 0) + (c.anos === 1 ? " ano" : " anos"), ajust = {};
     AS.forEach(function (a) { ajust[a.id] = isChanged(a); });
+    var uf = S.uf, kmTot = o.km * o.prazo;
     var rows = [
-      { k: "m_depr", n: "Desvalorização", f: brl(o.preco) + " × (100% − " + pct(o.res, 0) + ")", v: c.depr, ch: ajust.res },
-      { k: "m_capital", n: "Dinheiro parado", f: "valor médio × " + pct(o.rend, 1) + " ao ano × " + A, v: c.capital, ch: ajust.rend },
-      { k: "m_seguro", n: "Seguro", f: "valor médio × " + pct(o.seg, 1) + " ao ano × " + A, v: c.seguro, ch: ajust.seg },
-      { k: "m_ipva", n: "IPVA (" + S.uf + ")", f: "valor médio × " + pct(o.ipva, 2) + " ao ano × " + A, v: c.ipva, ch: ajust.uf },
-      { k: "m_lic", n: "Licenciamento", f: brl(o.lic, 0) + " por ano × " + A, v: c.lic, ch: ajust.lic },
-      { k: "m_rev", n: "Revisões", f: nf(o.km * o.prazo) + " km ÷ 10.000 × " + brl(o.rev, 0), v: c.manut, ch: ajust.rev },
-      { k: "m_pneu", n: "Pneus", f: nf(o.km * o.prazo) + " km ÷ 40.000 × " + brl(o.pneu, 0), v: c.pneus, ch: ajust.pneu },
-      { k: "m_equipe", n: "Tempo da equipe", f: nf(o.horas, 1) + " h por mês × " + brl(o.hora, 0) + " × " + o.prazo + " meses", v: c.gestao, ch: ajust.horas || ajust.hora },
-      { k: "m_parado", n: "Carro parado e imprevistos", f: brl(o.parado, 0) + " por mês × " + o.prazo + " meses", v: c.indisp, ch: ajust.parado }
+      { k: "m_depr", n: "Desvalorização", what: "O carro vale menos a cada ano. É a diferença entre o que você paga e o que recebe ao vendê-lo.", v: c.depr, ch: ajust.res,
+        eq: [term("Preço pago", brl(o.preco)), op("−"), term("Valor na venda (" + pct(o.res, 1) + ")", brl(c.fimValor)), op("="), term("Desvalorização", brl(c.depr), 1)] },
+      { k: "m_capital", n: "Dinheiro parado", what: "O dinheiro preso no carro poderia estar rendendo. É o rendimento que você deixa de ganhar.", v: c.capital, ch: ajust.rend,
+        eq: [term("Valor médio do carro", brl(c.medio)), op("×"), term("Rendimento ao ano", pct(o.rend, 1)), op("×"), term("Tempo", A), op("="), term("Dinheiro parado", brl(c.capital), 1)] },
+      { k: "m_seguro", n: "Seguro", what: "A apólice completa do carro, calculada para o seu estado e a idade dos motoristas.", v: c.seguro, ch: ajust.seg,
+        eq: [term("Valor médio do carro", brl(c.medio)), op("×"), term("Seguro ao ano", pct(o.seg, 2)), op("×"), term("Tempo", A), op("="), term("Seguro", brl(c.seguro), 1)] },
+      { k: "m_ipva", n: "IPVA (" + uf + ")", what: "Imposto anual do estado, cobrado sobre o valor do carro.", v: c.ipva, ch: ajust.ipva,
+        eq: [term("Valor médio do carro", brl(c.medio)), op("×"), term("Alíquota em " + uf, pct(o.ipva, 2)), op("×"), term("Tempo", A), op("="), term("IPVA", brl(c.ipva), 1)] },
+      { k: "m_lic", n: "Licenciamento", what: "Taxa anual do Detran para manter o carro regularizado.", v: c.lic, ch: ajust.lic,
+        eq: [term("Taxa por ano em " + uf, brl(o.lic, 2)), op("×"), term("Tempo", A), op("="), term("Licenciamento", brl(c.lic), 1)] },
+      { k: "m_rev", n: "Revisões", what: "Uma revisão a cada 10.000 km, na concessionária.", v: c.manut, ch: ajust.rev,
+        eq: [term("Km rodados no prazo", nf(kmTot) + " km"), op("÷"), term("A cada", "10.000 km"), op("="), term("Revisões", nf(c.nRev, 1)), op("×"), term("Preço de cada", brl(o.rev, 0)), op("="), term("Revisões", brl(c.manut), 1)] },
+      { k: "m_pneu", n: "Pneus", what: "Um jogo de 4 pneus a cada 40.000 km.", v: c.pneus, ch: ajust.pneu,
+        eq: [term("Km rodados no prazo", nf(kmTot) + " km"), op("÷"), term("A cada", "40.000 km"), op("="), term("Jogos de pneus", nf(c.nPneu, 2)), op("×"), term("Preço do jogo", brl(o.pneu, 0)), op("="), term("Pneus", brl(c.pneus), 1)] },
+      { k: "m_equipe", n: "Tempo da equipe", what: "Horas de alguém da sua equipe com multas, documentos, seguro, oficina e venda.", v: c.gestao, ch: ajust.horas || ajust.hora,
+        eq: [term("Horas por mês", nf(o.horas, 1) + " h"), op("×"), term("Custo da hora", brl(o.hora, 1)), op("×"), term("Meses", String(o.prazo)), op("="), term("Equipe", brl(c.gestao), 1)] },
+      { k: "m_parado", n: "Carro parado", what: "Dias na oficina em que você precisaria alugar outro carro. Cada dia vale a diária de um carro equivalente.", v: c.indisp, ch: ajust.dias || ajust.diaria,
+        eq: [term("Dias parado por ano", nf(o.dias, 1)), op("×"), term("Tempo", A), op("="), term("Dias no prazo", nf(c.diasTot, 1)), op("×"), term("Diária de aluguel", brl(o.diaria, 0)), op("="), term("Carro parado", brl(c.indisp), 1)] }
     ];
-    $("#medio").innerHTML = '<b>Valor médio do carro</b> = (' + brl(o.preco) + " + " + brl(c.fimValor) + ") ÷ 2 = <b>" + brl(c.medio) + '</b> <button class="tip-i" type="button" data-tip="medio" aria-label="O que é isto?">i</button>';
-    $("#math tbody").innerHTML = rows.map(function (r) {
-      return '<tr><td data-l="Item"><span class="mi">' + esc(r.n) + '</span><button class="tip-i tip-s" type="button" data-tip="' + r.k + '" aria-label="O que é isto?">i</button>' + (r.ch ? '<span class="chg-dot">ajustado</span>' : "") + '</td><td data-l="Como calculamos" class="f">' + esc(r.f) + '</td><td data-l="No prazo" class="n">' + brl(r.v) + '</td><td data-l="Por mês" class="n">' + brl(r.v / o.prazo) + "</td></tr>";
+    $("#medio").innerHTML = '<b>Antes das contas: o valor médio do carro.</b> O carro vale menos a cada mês, então para dinheiro parado, seguro e IPVA usamos a média entre o que você paga e o que recebe na venda: (' + brl(o.preco) + " + " + brl(c.fimValor) + ") ÷ 2 = <b>" + brl(c.medio) + '</b> <button class="tip-i" type="button" data-tip="medio" aria-label="O que é isto?">i</button>';
+    $("#steps").innerHTML = rows.map(function (r, i) {
+      return '<li class="st"><span class="st-n">' + (i + 1) + '</span><div class="st-main"><div class="st-h">' + esc(r.n) + '<button class="tip-i tip-s" type="button" data-tip="' + r.k + '" aria-label="O que é isto?">i</button>' + (r.ch ? '<span class="chg-dot">ajustado</span>' : "") + '</div><p class="st-what">' + esc(r.what) + '</p><div class="st-eq">' + r.eq.join("") + '</div><div class="st-bar"><i style="width:' + (c.total ? (r.v / c.total * 100).toFixed(1) : 0) + '%"></i></div></div>' +
+        '<div class="st-v"><b>' + brl(r.v / o.prazo) + '</b><small>por mês</small><em>' + brl(r.v) + " no prazo · " + pct(r.v / c.total, 0) + "</em></div></li>";
     }).join("");
-    $("#math tfoot").innerHTML =
-      '<tr class="tot"><td colspan="2">Total por carro</td><td class="n">' + brl(c.total) + '</td><td class="n">' + brl(c.mensal) + "</td></tr>" +
-      '<tr><td colspan="2">Por quilômetro rodado <span class="f">(' + brl(c.mensal) + " ÷ " + nf(o.km) + " km)</span></td><td class=\"n\" colspan=\"2\">" + brl(c.porKm) + "</td></tr>" +
-      '<tr><td colspan="2">Frota toda <span class="f">(× ' + nf(S.carros) + (S.carros === 1 ? " carro)" : " carros)") + '</span></td><td class="n">' + brl(c.total * S.carros, 0) + '</td><td class="n">' + brl(c.mensal * S.carros, 0) + "</td></tr>";
+    $("#st-total").innerHTML =
+      "<div><small>Total por carro, no prazo</small><b>" + brl(c.total) + "</b></div>" +
+      "<div><small>Por mês, por carro</small><b>" + brl(c.mensal) + "</b></div>" +
+      "<div><small>Por km rodado</small><b>" + brl(c.porKm) + "</b></div>" +
+      "<div><small>Frota (" + nf(S.carros) + (S.carros === 1 ? " carro" : " carros") + "), por mês</small><b>" + brl(c.mensal * S.carros, 0) + "</b></div>";
   }
 
   function update() {
-    var o = optsFrom(S), c = modelo(o), n = S.carros;
-    var sel = CARS[S.car], ajustado = Math.abs(sel.p - S.preco) > 0.5;
-    $("#cb-name").textContent = sel.n + (ajustado ? " (preço ajustado)" : "");
-    $("#cb-price").textContent = brl(S.preco, 0);
-    $("#car-hint").textContent = sel.blind ? "Preço aproximado, com blindagem (base: " + brl(sel.base, 0) + ")." : sel.g === "REF" ? "Carro e preço de referência usados no estudo." : "Preço de tabela 0 km (referência)" + (sel.nt ? " · " + sel.nt : "") + ".";
+    var has = hasCar(), n = S.carros;
+    var sel = CARS[S.car] || null, ajustado = sel && Math.abs(sel.p - S.preco) > 0.5;
+    $("#cb-name").textContent = sel ? sel.n + (ajustado ? " (preço ajustado)" : "") : has ? "Outro carro (preço digitado)" : "Escolha o carro…";
+    $("#cb-price").textContent = has ? brl(S.preco, 0) : "";
+    $("#car-hint").textContent = sel ? (sel.blind ? "Preço aproximado, com blindagem (base: " + brl(sel.base, 0) + ")." : "Preço de tabela 0 km (referência)" + (sel.nt ? " · " + sel.nt : "") + ".") : has ? "Sem dados específicos deste carro: usamos médias gerais." : "Escolha na lista ou digite o preço abaixo.";
     $("#out-carros").textContent = nf(n);
     $("#out-km").textContent = nf(S.km) + " km";
-    if (document.activeElement !== inPrecoN) inPrecoN.value = nf(S.preco, 2);
-    inPreco.value = clamp(S.preco, +inPreco.min, +inPreco.max);
+    if (document.activeElement !== inPrecoN) inPrecoN.value = has ? nf(S.preco, 2) : "";
+    inPreco.value = clamp(S.preco || 50000, +inPreco.min, +inPreco.max);
     [inCar, inKm, inPreco].forEach(rangeFill);
     $$("#in-prazo button").forEach(function (b) { b.classList.toggle("on", +b.getAttribute("data-v") === S.prazo); });
     $$("#in-fin button").forEach(function (b) { b.classList.toggle("on", +b.getAttribute("data-v") === S.fin); });
+    inUf.value = S.uf; hUf.value = S.uf;
+    if (document.activeElement !== hIdade) hIdade.value = S.idade;
+    if (document.activeElement !== inIdade) inIdade.value = S.idade;
     renderAssum();
-    inIdade.value = S.idade; inUf.value = S.uf;
-    var sgv = S.modo === "estudo" ? P.seguroAA * 100 : val("seg", S), sgAnual = sgv / 100 * c.medio;
-    $("#perfil-hint").textContent = S.modo === "estudo" ? "Na base \u201cPremissas do estudo\u201d o seguro é fixo em " + nf(P.seguroAA * 100, 1) + "% ao ano; só o IPVA muda com o estado."
-      : "Seguro estimado para este carro: " + nf(sgv, 2) + "% ao ano (cerca de " + brl(sgAnual, 0) + " por ano) · IPVA em " + S.uf + ": " + nf(S.ipva != null ? S.ipva : ufRate(S.uf), 2) + "% ao ano.";
 
+    $("#r-empty").hidden = has; $("#r-body").hidden = !has;
+    $("#passo-empty").hidden = has; $("#passo-body").hidden = !has;
+    if (!has) return;
+
+    var o = optsFrom(S), c = modelo(o);
     tweenText($("#r-mes"), c.mensal, moneyFmt);
     tweenText($("#r-frota"), c.mensal * n, moneyFmt);
     $("#r-total-l").textContent = "Frota toda, em " + S.prazo + " meses";
@@ -471,38 +479,46 @@
       tweenText($("#fin-juros"), f.juros, moneyFmt);
     }
 
-    var hasMov = S.mov > 0;
-    $("#r-cmp").hidden = !hasMov;
+    var hasMov = S.mov > 0, cmp = $("#r-cmp");
+    cmp.hidden = !hasMov;
     if (hasMov) {
       var mx = Math.max(c.mensal, S.mov), diff = c.mensal - S.mov, ad = Math.abs(diff);
+      cmp.classList.toggle("neutro", diff <= 0.5);
       $("#cmp-own").style.width = (c.mensal / mx) * 100 + "%";
       $("#cmp-mov").style.width = (S.mov / mx) * 100 + "%";
       $("#cmp-own-v").textContent = brl(c.mensal);
       $("#cmp-mov-v").textContent = brl(S.mov);
-      if (ad < 0.5) {
-        $("#cmp-big").textContent = "Os valores são praticamente iguais.";
-        $("#cmp-small").textContent = "A Movida ainda inclui tudo o que está listado mais abaixo.";
-      } else if (diff > 0) {
-        $("#cmp-big").textContent = brl(ad) + " a menos por mês, por carro.";
-        $("#cmp-small").textContent = "Na frota toda: " + brl(ad * n, 0) + " por mês e " + brl(ad * n * S.prazo, 0) + " em " + S.prazo + " meses.";
+      if (diff > 0.5) {
+        $("#cmp-tag").textContent = "Alugar sai mais barato";
+        $("#cmp-big").textContent = brl(ad) + " a menos por mês, por carro";
+        $("#cmp-pct").textContent = pct(ad / c.mensal, 0) + " abaixo do custo da frota própria";
+        $("#cmp-grid").innerHTML = "<div><dt>Frota, por mês</dt><dd>" + brl(ad * n, 0) + "</dd></div><div><dt>Frota, por ano</dt><dd>" + brl(ad * n * 12, 0) + "</dd></div><div><dt>Em " + S.prazo + " meses</dt><dd>" + brl(ad * n * S.prazo, 0) + "</dd></div>";
+        $("#cmp-small").textContent = "Economia na frota de " + nf(n) + (n === 1 ? " carro" : " carros") + ", já considerando tudo o que a frota própria custa. A Movida ainda inclui o que está listado mais abaixo.";
+      } else if (ad < 0.5) {
+        $("#cmp-tag").textContent = "Valores iguais";
+        $("#cmp-big").textContent = "A proposta empata com a frota própria";
+        $("#cmp-pct").textContent = "";
+        $("#cmp-grid").innerHTML = "";
+        $("#cmp-small").textContent = "E a Movida ainda inclui tudo o que está listado mais abaixo.";
       } else {
-        $("#cmp-big").textContent = brl(ad) + " a mais por mês, por carro.";
-        $("#cmp-small").textContent = "Veja abaixo tudo o que a Movida já inclui nesse valor.";
+        $("#cmp-tag").textContent = "Proposta acima da conta";
+        $("#cmp-big").textContent = brl(ad) + " a mais por mês, por carro";
+        $("#cmp-pct").textContent = "";
+        $("#cmp-grid").innerHTML = "";
+        $("#cmp-small").textContent = "Veja abaixo tudo o que a Movida já inclui nesse valor (IPVA, manutenção, pneus, carro reserva). Combustível e multas ficam de fora dos dois lados.";
       }
     }
     st2.update(c.grupos, S.prazo, "por carro, por mês");
-    renderMath(c, o);
+    renderSteps(c, o);
   }
 
   inCar.addEventListener("input", function () { S.carros = +inCar.value; update(); });
   inKm.addEventListener("input", function () { S.km = +inKm.value; update(); });
   inPreco.addEventListener("input", function () { S.preco = +inPreco.value; update(); });
   inPrecoN.addEventListener("input", function () { var v = parseMoney(inPrecoN.value); if (v > 0) { S.preco = clamp(v, 20000, 600000); update(); } });
-  inPrecoN.addEventListener("blur", function () { inPrecoN.value = nf(S.preco, 2); });
+  inPrecoN.addEventListener("blur", function () { inPrecoN.value = hasCar() ? nf(S.preco, 2) : ""; });
   $("#in-prazo").addEventListener("click", function (e) { var b = e.target.closest("button"); if (!b) return; S.prazo = +b.getAttribute("data-v"); clearOv("res", "rend"); update(); });
   $("#in-fin").addEventListener("click", function (e) { var b = e.target.closest("button"); if (!b) return; S.fin = +b.getAttribute("data-v"); update(); });
-  inMov.addEventListener("input", function () { S.mov = parseMoney(inMov.value); update(); });
-  inMov.addEventListener("blur", function () { if (S.mov > 0) inMov.value = nf(S.mov, 2); });
 
   /* compartilhar cenário */
   var toast = $("#toast"), tt;
@@ -510,11 +526,10 @@
   $("#share").addEventListener("click", function () {
     var p = new URLSearchParams();
     p.set("carros", S.carros); p.set("km", S.km); p.set("prazo", S.prazo); p.set("preco", Math.round(S.preco * 100) / 100);
+    if (S.car >= 0) p.set("m", S.car);
     if (S.fin) p.set("financiar", 1);
     if (S.mov > 0) p.set("movida", S.mov);
-    if (S.uf !== D.ufPadrao) p.set("uf", S.uf);
-    if (S.idade !== 40) p.set("idade", S.idade);
-    if (S.modo === "estudo") p.set("modo", "estudo");
+    p.set("uf", S.uf); p.set("idade", S.idade);
     if (S.ipva != null) p.set("ipva", S.ipva);
     AS.forEach(function (a) { if (!a.special && isChanged(a)) p.set("a_" + a.id, curVal(a)); });
     var url = location.origin + location.pathname + "?" + p.toString() + "#conta";
@@ -528,7 +543,9 @@
   $("#fine").textContent = D.aviso;
   if (D.cta && D.cta.href) { var cta = $("#cta"); cta.href = D.cta.href; cta.innerHTML = D.cta.texto + ' <span aria-hidden="true">→</span>'; cta.hidden = false; }
 
-  
+  /* valores iniciais dos campos */
+  if (S.mov > 0) { inMov.value = nf(S.mov, 2); hMov.value = nf(S.mov, 2); }
+  hIdade.value = S.idade;
   update();
 
   /* ---------- barra, abas ---------- */
@@ -540,27 +557,20 @@
     es.forEach(function (e) { if (e.isIntersecting) tabs.forEach(function (t) { t.classList.toggle("on", t.getAttribute("data-s") === e.target.id); }); });
   }, { rootMargin: "-45% 0px -50% 0px" });
   spy.observe($("#custo")); spy.observe($("#conta"));
+  if (fromLink) setTimeout(function () { var c = $("#conta"); if (c && !location.hash) window.scrollTo({ top: scrollY + c.getBoundingClientRect().top - 8 }); }, 50);
 
   /* ---------- movimento ---------- */
-  var heroVal = $("#hero-val");
-  if (!HAS) {
-    heroVal.textContent = brl(base.mensal);
-    $("#f1").textContent = "97"; $("#f3").textContent = brl(juros36); setBars();
-    return;
-  }
-
+  if (!HAS) return;
   var arc = $(".m-arc"), L = arc.getTotalLength();
   arc.style.strokeDasharray = L; arc.style.strokeDashoffset = L;
   var tl = gsap.timeline({ defaults: { ease: "power3.out" } });
   tl.from(".bar", { y: -30, opacity: 0, duration: 0.7 }, 0)
-    .from(".eyebrow", { y: 16, opacity: 0, duration: 0.7 }, 0.2)
+    .from(".hero .eyebrow", { y: 16, opacity: 0, duration: 0.7 }, 0.2)
     .from("#h1 .ln > span", { yPercent: 112, duration: 1.05, stagger: 0.12, ease: "power4.out" }, 0.3)
-    .from("#bignum", { y: 30, opacity: 0, duration: 0.9 }, 0.95)
-    .from(".hero .btn", { y: 20, opacity: 0, duration: 0.8 }, 1.4)
+    .from(".hero-lead", { y: 24, opacity: 0, duration: 0.8 }, 0.9)
+    .from(".intake", { y: 34, opacity: 0, duration: 0.9 }, 1.1)
     .to(arc, { strokeDashoffset: 0, duration: 1.6, ease: "power2.inOut" }, 0.4)
     .from(".m-dot", { y: -260, duration: 1.3, ease: "bounce.out" }, 0.7);
-  countOnce(heroVal, base.mensal, moneyFmt, 1.8, 1.0);
-
   gsap.to(".motif", { yPercent: -20, ease: "none", scrollTrigger: { trigger: "#hero", start: "top top", end: "bottom top", scrub: true } });
 
   function reveal(sel, vars, start) {
@@ -568,24 +578,9 @@
       gsap.from(n, Object.assign({ y: 34, opacity: 0, duration: 0.9, ease: "power3.out", scrollTrigger: { trigger: n, start: start || "top 88%", once: true } }, vars || {}));
     });
   }
-  reveal(".eyebrow-o, .h-l, .sub, .toggle, .h-s, .detail, .next, .end, .chips, .guide-btn, .medio");
-
-  gsap.from("#stack1", { clipPath: "inset(0 100% 0 0 round 14px)", duration: 1.4, ease: "power4.out", scrollTrigger: { trigger: "#stack1", start: "top 85%", once: true } });
-  gsap.from("#legend1 .lg", { y: 18, opacity: 0, duration: 0.6, stagger: 0.07, scrollTrigger: { trigger: "#legend1", start: "top 90%", once: true } });
-
-  ScrollTrigger.create({
-    trigger: "#fatos", start: "top 72%", once: true,
-    onEnter: function () {
-      gsap.from(".fact", { y: 40, opacity: 0, duration: 0.9, stagger: 0.12, ease: "power3.out" });
-      countOnce($("#f1"), 97, intFmt, 1.6, 0.2);
-      countOnce($("#f3"), juros36, moneyFmt, 1.8, 0.5);
-      setTimeout(setBars, 250);
-    }
-  });
-
+  reveal("#conta .eyebrow-o, #conta .h-l, #conta .sub, .guide-btn, .passo-lead, .end");
   gsap.from(".controls .ctl, .controls .assum", { y: 26, opacity: 0, duration: 0.7, stagger: 0.08, scrollTrigger: { trigger: ".calc", start: "top 85%", once: true } });
   gsap.from(".result", { y: 40, opacity: 0, duration: 1, ease: "power3.out", scrollTrigger: { trigger: ".calc", start: "top 85%", once: true } });
-  gsap.from(".math tbody tr", { x: -24, opacity: 0, duration: 0.6, stagger: 0.06, scrollTrigger: { trigger: "#math", start: "top 88%", once: true } });
   gsap.from("#stack2", { clipPath: "inset(0 100% 0 0 round 14px)", duration: 1.4, ease: "power4.out", scrollTrigger: { trigger: "#stack2", start: "top 88%", once: true } });
   gsap.from("#legend2 .lg", { y: 18, opacity: 0, duration: 0.6, stagger: 0.07, scrollTrigger: { trigger: "#legend2", start: "top 92%", once: true } });
   gsap.from(".incl-grid li", { y: 34, opacity: 0, duration: 0.7, stagger: 0.09, scrollTrigger: { trigger: ".incl-grid", start: "top 88%", once: true } });

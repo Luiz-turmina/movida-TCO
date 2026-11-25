@@ -1,29 +1,17 @@
 /* ============================================================
-   data.js — premissas e textos do comparativo.
-   Premissas = as do "Estudo Executivo TCO — Frota Própria vs. Movida Frotas"
-   (Fiat Argo 1.0, 36 meses, 1.000 km/mês). Trocar aqui atualiza o site todo.
-
-   A mensalidade da Movida NÃO está no estudo (é o quadro em branco da p. 7).
-   Para enviar um link já com a proposta preenchida, use:
-     ?carros=20&km=2000&prazo=48&preco=90000&movida=3150&financiar=1
+   data.js — textos, lista de carros e parâmetros fixos do comparativo.
+   Os números de mercado (desvalorização, Selic, seguro, IPVA, licenciamento, revisão, pneus, diária...) ficam em
+   mercado.js (gerado pela pesquisa). A mensalidade da Movida NÃO é fixa: o cliente digita a proposta, ou use o link:
+     ?carros=20&km=2000&prazo=48&preco=90000&movida=3150&financiar=1&idade=35&uf=SP
    ============================================================ */
 window.MOVIDA_DATA = {
-  carro: "Fiat Argo 1.0",
-  precoReferencia: 84316.5,
-
   premissas: {
-    residual: { 12: 0.85, 24: 0.72, 36: 0.6, 48: 0.5, 60: 0.42 }, // valor do carro no fim do prazo
-    custoCapitalAA: 0.10,        // quanto o dinheiro renderia por ano
-    seguroAA: 0.045,             // sobre o valor médio do carro
-    ipvaAA: 0.04,                // sobre o valor médio (referência RJ)
-    licenciamentoAno: 300,
-    revisao: { valor: 862, kmCada: 10000 },
-    pneus: { valor: 2500, kmCada: 40000 },
-    gestaoHorasMes: 1.5,
-    gestaoHora: 45,
-    indisponibilidadeMes: 50
+    revisaoKm: 10000,        // intervalo entre revisões
+    pneusKm: 40000,          // vida de um jogo de pneus
+    gestaoHorasMes: 1.5      // estimativa: multas, documentos, seguro, oficina e venda
   },
-  financiamento: { entrada: 0.3, taxaMes: 0.012 },
+  /* financiamento: juros = média do Banco Central (SGS 25447, empresas, aquisição de veículos, set/2026) */
+  financiamento: { entrada: 0.3, taxaMes: 0.0143 },
 
   /* Lista de carros: preço de tabela 0 km (referência, linhas 2026/2027), por grupo. Blindados: preço aproximado. */
   carros: [
@@ -130,39 +118,37 @@ window.MOVIDA_DATA = {
     {"g": "TT", "n": "COMMANDER LIMITED T270 1.3 TB FLEX AUT.", "p": 340690.0, "base": 255690.0, "blind": true, "nt": "preço aproximado, com blindagem"}
   ],
 
-  /* IPVA de automóveis a gasolina/flex, 2026, % do valor do carro por ano. Fonte: levantamento em reportagens e sites
-     especializados (Exame/SBT News 15/01/2026, Revista Carro 07/01/2026, Valor Final, Cidesp). NÃO foram conferidos
-     um a um nas Secretarias da Fazenda: a tela manda confirmar e o cliente pode ajustar. Onde a alíquota varia por
-     potência/valor, o padrão é a faixa do carro mais comum da lista (nota). */
+  /* IPVA de automóveis, 2026, % do valor do carro por ano (valor usado = o mais comum para carro a gasolina/flex;
+     "faixa" = intervalo do estado). Fonte verificada: CNN Brasil, ValorFinal e AutoDossiê. */
   ufPadrao: "SP",
   estados: [
     { uf: "AC", nome: "Acre", ipva: 2 },
-    { uf: "AL", nome: "Alagoas", ipva: 3, nota: "Varia com a potência: 2,75% até 80 cv, 3% de 80 a 160 cv, 3,25% acima." },
+    { uf: "AL", nome: "Alagoas", ipva: 3 },
     { uf: "AP", nome: "Amapá", ipva: 3 },
-    { uf: "AM", nome: "Amazonas", ipva: 2, nota: "Acima de 1.000 cc. Carros até 1.000 cc, elétricos e híbridos: 1,5%." },
-    { uf: "BA", nome: "Bahia", ipva: 2.5, nota: "Gasolina e flex. Diesel: 3%." },
-    { uf: "CE", nome: "Ceará", ipva: 3, nota: "Varia com a potência: 2,5% até 100 cv, 3% de 101 a 180 cv, 3,5% acima." },
+    { uf: "AM", nome: "Amazonas", ipva: 3 },
+    { uf: "BA", nome: "Bahia", ipva: 2.5, faixa: "2,5% a 3%" },
+    { uf: "CE", nome: "Ceará", ipva: 3 },
     { uf: "DF", nome: "Distrito Federal", ipva: 3 },
     { uf: "ES", nome: "Espírito Santo", ipva: 2 },
-    { uf: "GO", nome: "Goiás", ipva: 3.45, nota: "Varia com a potência: 3% até 100 cv, 3,45% acima. Uma fonte cita 3,75%." },
-    { uf: "MA", nome: "Maranhão", ipva: 2.5, nota: "2,5% até R$ 150 mil de valor venal; 3% acima." },
-    { uf: "MT", nome: "Mato Grosso", ipva: 3, nota: "Varia com a cilindrada: 2% até 1.000 cc, 3% acima." },
-    { uf: "MS", nome: "Mato Grosso do Sul", ipva: 3, nota: "As fontes divergem: 3% para carros de passeio (três fontes) ou 5% (uma). Confirme." },
-    { uf: "MG", nome: "Minas Gerais", ipva: 4 },
+    { uf: "GO", nome: "Goiás", ipva: 3.75 },
+    { uf: "MA", nome: "Maranhão", ipva: 2.5 },
+    { uf: "MT", nome: "Mato Grosso", ipva: 3, faixa: "2,5% a 3%" },
+    { uf: "MS", nome: "Mato Grosso do Sul", ipva: 3.5 },
+    { uf: "MG", nome: "Minas Gerais", ipva: 4, faixa: "3% a 4%" },
     { uf: "PA", nome: "Pará", ipva: 2.5 },
     { uf: "PB", nome: "Paraíba", ipva: 2.5 },
     { uf: "PR", nome: "Paraná", ipva: 1.9 },
-    { uf: "PE", nome: "Pernambuco", ipva: 2.4, nota: "Movidos a combustível. GNV: 1,5%." },
-    { uf: "PI", nome: "Piauí", ipva: 2.5, nota: "2,5% até R$ 150 mil de valor venal; 3% acima." },
-    { uf: "RJ", nome: "Rio de Janeiro", ipva: 4, nota: "Gasolina e flex. GNV e híbridos: 1,5%; elétricos: 0,5%." },
+    { uf: "PE", nome: "Pernambuco", ipva: 2.4, faixa: "2% a 2,4%" },
+    { uf: "PI", nome: "Piauí", ipva: 3 },
+    { uf: "RJ", nome: "Rio de Janeiro", ipva: 4, faixa: "3% a 4%" },
     { uf: "RN", nome: "Rio Grande do Norte", ipva: 3 },
-    { uf: "RS", nome: "Rio Grande do Sul", ipva: 3 },
+    { uf: "RS", nome: "Rio Grande do Sul", ipva: 3, faixa: "2% a 3%" },
     { uf: "RO", nome: "Rondônia", ipva: 3 },
     { uf: "RR", nome: "Roraima", ipva: 3 },
     { uf: "SC", nome: "Santa Catarina", ipva: 2 },
     { uf: "SP", nome: "São Paulo", ipva: 4 },
-    { uf: "SE", nome: "Sergipe", ipva: 2.5, nota: "2,5% até R$ 120 mil de valor venal; 3% acima." },
-    { uf: "TO", nome: "Tocantins", ipva: 3.5, nota: "Varia com a potência: 2,5% até 100 cv, 3,5% acima." }
+    { uf: "SE", nome: "Sergipe", ipva: 2.5 },
+    { uf: "TO", nome: "Tocantins", ipva: 2 }
   ],
 
   /* textos dos popups (ícone "i") — linguagem simples */
@@ -172,20 +158,21 @@ window.MOVIDA_DATA = {
     carros: { t: "Carros na frota", d: "Quantos carros a sua empresa teria. O custo por carro não muda; só o total da frota." },
     km: { t: "Quilômetros por mês", d: "Quanto cada carro roda por mês. Quanto mais roda, mais revisões e pneus." },
     prazo: { t: "Tempo com o carro", d: "Por quanto tempo você ficaria com o carro antes de vendê-lo. Prazos curtos pesam mais, porque o carro perde valor mais rápido no começo." },
-    fin: { t: "À vista ou financiado", d: "À vista: o dinheiro sai do caixa de uma vez. Financiado: 30% de entrada e o resto em parcelas, com juros de 1,20% ao mês. Os juros aparecem à parte no resultado." },
-    mov: { t: "Mensalidade da Movida", d: "Digite o valor da proposta que você recebeu da Movida para ver a diferença. É opcional." },
-    perfil: { t: "Sobre você", d: "A idade do motorista principal e o estado onde o carro é emplacado mudam o seguro e o IPVA. Com eles, calculamos a média de cada carro e já refazemos a conta inteira." },
-    premissas: { t: "Premissas da conta", d: "São os números que sustentam o cálculo. Em \"Médias de mercado\", cada um vem de uma fonte oficial ou de referência, com a fonte indicada logo abaixo. Em \"Premissas do estudo\", voltam os números do estudo executivo. Em qualquer caso, você pode ajustar." },
+    fin: { t: "À vista ou financiado", d: "À vista: o dinheiro sai do caixa de uma vez. Financiado: 30% de entrada e o resto em parcelas, com juros de 1,43% ao mês (média do Banco Central para empresas, set/2026). Os juros aparecem à parte no resultado." },
+    mov: { t: "Proposta de aluguel", d: "Digite o valor mensal, por carro, da proposta de aluguel que você recebeu. Ele aparece no topo do resultado, comparado com o custo da frota própria. É opcional." },
+    perfil: { t: "Sobre você e a proposta", d: "A idade dos motoristas (se forem vários, use a média) e o estado onde o carro é emplacado mudam o seguro, o IPVA e o licenciamento. Se você já tem a proposta de aluguel, digite o valor por carro, por mês: mostramos a diferença na hora." },
+    premissas: { t: "Premissas da conta", d: "São os números que sustentam o cálculo. Cada um vem de uma fonte, indicada logo abaixo. Se você tiver um valor melhor, ajuste: o resultado muda na hora." },
     res: { t: "Quanto o carro vale no fim", d: "Quanto o carro vale quando você for vendê-lo, em % do que pagou. A média vem da Tabela FIPE de nov/2026: comparamos o preço do modelo 0 km com o do mesmo modelo de anos anteriores (1 ano mais velho = 12 meses, 2 anos = 24 meses etc.). Quanto menor o %, maior a desvalorização." },
     rend: { t: "Rendimento do dinheiro", d: "Quanto o dinheiro preso no carro renderia por ano se estivesse aplicado. Usamos a Selic que o mercado espera, em média, durante o prazo escolhido (Banco Central, Boletim Focus de 19/11/2026). É bruto, antes de imposto: se o seu dinheiro rende menos, ajuste." },
     seg: { t: "Seguro", d: "Custo anual de uma apólice completa (casco, terceiros e acidentes pessoais), em % do valor do carro. É uma estimativa feita com os dados abertos da SUSEP, o órgão que regula seguros: taxa do modelo ou da categoria, ajustada pelo estado e pela idade do motorista. Não é cotação: se você tiver uma, digite o valor aqui." },
-    uf: { t: "Estado e IPVA", d: "O IPVA muda de estado para estado, e em alguns varia com a potência ou o valor do carro. As alíquotas de 2026 foram levantadas em reportagens e sites especializados e não foram conferidas uma a uma nas Secretarias da Fazenda: confirme a do seu estado e ajuste se precisar." },
-    lic: { t: "Licenciamento", d: "Taxa anual do Detran para manter o carro regularizado. Varia por estado. Usamos R$ 300, o valor do estudo de referência (é uma estimativa, não encontramos tabela oficial consolidada): confirme no Detran do seu estado." },
-    rev: { t: "Revisões", d: "Custo de uma revisão programada, a cada 10.000 km. A média vem dos pacotes de revisão com preço fechado da Volkswagen (Vale+, tabela de out/2026): R$ 849 por revisão no Polo Track e no Tera 1.0, R$ 919 nos TSI e valores maiores nos modelos mais caros. Usamos como referência para todas as marcas, pois nem todas divulgam preço fechado." },
-    pneu: { t: "Pneus", d: "Custo de um jogo de 4 pneus, trocado a cada 40.000 km. Partimos de R$ 2.500 (estudo de referência) para carros compactos e subimos nos que usam pneus maiores, pela proporção de preços observada em loja online (Pneubest, nov/2026). É uma estimativa: marcas e medidas mudam muito o valor." },
-    horas: { t: "Tempo da sua equipe", d: "Horas por mês que alguém da sua equipe gasta com multas, documentos, IPVA, seguro, oficina e venda do carro. Usamos 1,5 h por mês, o mesmo do estudo de referência. É uma estimativa: não existe dado oficial para isso." },
+    uf: { t: "Estado e IPVA", d: "O IPVA muda de estado para estado, e em alguns varia com a potência, o combustível ou o valor do carro. Usamos a alíquota mais comum para carros a gasolina/flex em 2026. Se a do seu caso for outra, ajuste." },
+    lic: { t: "Licenciamento", d: "Taxa anual do Detran para manter o carro regularizado. Varia por estado e já considera o estado escolhido. Onde a fonte não traz o valor, usamos a mediana dos demais estados." },
+    rev: { t: "Revisões", d: "Custo de uma revisão programada na concessionária, a cada 10.000 km. Usamos o preço da revisão do modelo escolhido; quando a marca não divulga, uma média da faixa de carro." },
+    pneu: { t: "Pneus", d: "Custo de um jogo de 4 pneus, trocado a cada 40.000 km. Usamos a medida de série do modelo e o preço médio de pneus de marcas conhecidas nessa medida." },
+    horas: { t: "Tempo da sua equipe", d: "Horas por mês que alguém da sua equipe gasta com multas, documentos, IPVA, seguro, oficina e venda do carro. É uma estimativa: não existe dado oficial para isso." },
     hora: { t: "Custo da hora da equipe", d: "Quanto custa para a empresa uma hora dessa pessoa. Partimos do rendimento médio do trabalhador brasileiro (IBGE, PNAD Contínua, jul–set/2026: R$ 3.790 por mês), dividimos por 190,7 horas e somamos 70% de encargos (13º, férias, FGTS e INSS, estimativa). Se a pessoa que cuida da frota ganha mais, ajuste." },
-    parado: { t: "Imprevistos e carro parado", d: "Reserva mensal para os dias em que o carro está na oficina e você precisa de outra solução (aluguel avulso, táxi, perda de produtividade). Estimativa: 4 dias parado por ano × R$ 150 de diária de carro alugado ÷ 12 meses = R$ 50 por mês. A diária vem de páginas de preço da Localiza (compacto acima de R$ 154; econômico acima de R$ 122, média de 12 meses em São Paulo)." },
+    dias: { t: "Dias parado por ano", d: "Quantos dias por ano, em média, o carro fica parado (revisões, oficina, funilaria, documentos). Cada dia parado é multiplicado pela diária de um carro equivalente alugado." },
+    diaria: { t: "Diária de um carro equivalente", d: "Quanto custaria alugar, por dia, um carro parecido com o seu enquanto ele está parado. Média de preços de aluguel avulso por categoria de carro (2026)." },
     resultado: { t: "Custo real por carro", d: "Soma de tudo o que o carro custa de verdade: desvalorização, dinheiro parado, seguro, impostos, manutenção e imprevistos. Não inclui combustível." },
     passo: { t: "A conta passo a passo", d: "Aqui você vê cada parte do cálculo com os seus números. Tudo muda na hora quando você ajusta qualquer campo." },
     medio: { t: "Valor médio do carro", d: "É a média entre o que o carro vale quando você o compra e o que vale quando o vende. Usamos esse valor para calcular seguro, IPVA e rendimento." },
@@ -197,12 +184,13 @@ window.MOVIDA_DATA = {
     m_rev: { t: "Revisões", d: "Quantidade de revisões no período (km rodados ÷ 10.000) vezes o custo de cada uma." },
     m_pneu: { t: "Pneus", d: "Quantos jogos de pneus o carro usa no período (km rodados ÷ 40.000) vezes o custo de cada um." },
     m_equipe: { t: "Tempo da equipe", d: "Horas que sua equipe dedica ao carro, vezes o custo da hora, vezes os meses." },
-    m_parado: { t: "Carro parado", d: "Reserva mensal para imprevistos, vezes os meses." }
+    m_parado: { t: "Carro parado", d: "Dias parado por ano, vezes a diária de um carro equivalente, vezes os anos." }
   },
 
   /* guia rápido (popups em sequência) */
   guia: [
     { sel: "#perfil", dica: "perfil" },
+    { sel: "#f-mov", dica: "mov" },
     { sel: "#combo-btn", dica: "carro" },
     { sel: "#in-km", dica: "km" },
     { sel: "#in-prazo", dica: "prazo" },
@@ -237,5 +225,5 @@ window.MOVIDA_DATA = {
   cta: { texto: "Peça uma proposta", href: "" },
 
   aviso:
-    "Calculadora: usa médias de mercado (FIPE, Banco Central, SUSEP, IBGE e outras fontes listadas em Premissas da conta) e valores de tabela 0 km; são referências para uma primeira conta, não cotações, e o IPVA não foi conferido nas Secretarias da Fazenda. Primeira página: valores ilustrativos para um Fiat Argo 1.0 a R$ 84.316,50 (média entre duas referências de mercado), sujeitos à versão exata, ao perfil de uso e à proposta comercial da Movida. Combustível, multas, estacionamento e pedágios ficam de fora porque custam o mesmo comprando ou alugando. Valide o tratamento fiscal com a sua contabilidade."
+    "Calculadora com médias de mercado (fontes em Premissas da conta): são referências para uma primeira conta, não cotações. Combustível, multas, estacionamento e pedágios ficam de fora porque custam o mesmo comprando ou alugando. Valide o tratamento fiscal com a sua contabilidade."
 };
