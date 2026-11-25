@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="styles.css?v=4" />
 </head>
 <body>
 
@@ -96,20 +96,49 @@
   <div class="wrap">
     <p class="eyebrow-o">Faça a conta</p>
     <h2 class="h-l">Quanto custa a sua frota?</h2>
-    <p class="sub">Mexa nos números. O resultado muda na hora.</p>
+    <p class="sub">Diga a idade do motorista e o estado, escolha o carro e veja o resultado mudar na hora. Os números partem de médias de mercado com fonte indicada, e você pode ajustar todos.</p>
+    <button class="guide-btn" id="guide-btn" type="button"><span aria-hidden="true">?</span> Guia rápido: como usar</button>
 
     <div class="calc">
       <div class="controls">
+        <div class="ctl ctl-perfil" id="perfil">
+          <div class="ctl-top"><span class="lbl">Sobre você</span><button class="tip-i" type="button" data-tip="perfil" aria-label="O que é isto?">i</button></div>
+          <p class="perfil-lead">Com a idade do motorista e o estado, calculamos o seguro e o IPVA médios de cada carro.</p>
+          <div class="perfil-row">
+            <label class="pf" for="in-idade"><span>Idade do motorista principal</span>
+              <span class="pf-age"><input id="in-idade" type="number" inputmode="numeric" min="18" max="85" step="1" /><em>anos</em></span></label>
+            <label class="pf" for="in-uf"><span>Estado onde o carro é emplacado</span>
+              <select id="in-uf"></select></label>
+          </div>
+          <p class="hint" id="perfil-hint"></p>
+        </div>
+        <div class="ctl ctl-car">
+          <div class="ctl-top"><label for="combo-btn">Carro</label><button class="tip-i" type="button" data-tip="carro" aria-label="O que é isto?">i</button></div>
+          <div class="combo" id="combo">
+            <button type="button" class="combo-btn" id="combo-btn" aria-haspopup="listbox" aria-expanded="false">
+              <span class="cb-name" id="cb-name"></span><b class="cb-price" id="cb-price"></b><i class="cb-arrow" aria-hidden="true"></i>
+            </button>
+            <div class="combo-pop" id="combo-pop" hidden>
+              <input id="car-q" type="search" placeholder="Buscar modelo (ex.: Onix, Strada, Corolla)" autocomplete="off" />
+              <div class="combo-list" id="combo-list" role="listbox"></div>
+            </div>
+          </div>
+          <p class="hint" id="car-hint"></p>
+        </div>
         <div class="ctl">
-          <div class="ctl-top"><label for="in-carros">Carros na frota</label><output id="out-carros"></output></div>
+          <div class="ctl-top"><label for="in-preco">Preço do carro</label><button class="tip-i" type="button" data-tip="preco" aria-label="O que é isto?">i</button><span class="money sm"><span>R$</span><input id="in-preco-n" type="text" inputmode="decimal" autocomplete="off" aria-label="Preço do carro em reais" /></span></div>
+          <input id="in-preco" type="range" min="50000" max="350000" step="0.5" />
+        </div>
+        <div class="ctl">
+          <div class="ctl-top"><label for="in-carros">Carros na frota</label><button class="tip-i" type="button" data-tip="carros" aria-label="O que é isto?">i</button><output id="out-carros"></output></div>
           <input id="in-carros" type="range" min="1" max="200" step="1" />
         </div>
         <div class="ctl">
-          <div class="ctl-top"><label for="in-km">Quilômetros por carro, por mês</label><output id="out-km"></output></div>
+          <div class="ctl-top"><label for="in-km">Quilômetros por carro, por mês</label><button class="tip-i" type="button" data-tip="km" aria-label="O que é isto?">i</button><output id="out-km"></output></div>
           <input id="in-km" type="range" min="500" max="6000" step="100" />
         </div>
         <div class="ctl">
-          <div class="ctl-top"><span class="lbl">Tempo com o carro</span></div>
+          <div class="ctl-top"><span class="lbl">Tempo com o carro</span><button class="tip-i" type="button" data-tip="prazo" aria-label="O que é isto?">i</button></div>
           <div class="seg-btns" id="in-prazo" role="group" aria-label="Tempo com o carro">
             <button type="button" data-v="12">12 meses</button>
             <button type="button" data-v="24">24 meses</button>
@@ -119,26 +148,34 @@
           </div>
         </div>
         <div class="ctl">
-          <div class="ctl-top"><label for="in-preco">Preço do carro</label><output id="out-preco"></output></div>
-          <input id="in-preco" type="range" min="50000" max="200000" step="0.5" />
-          <p class="hint">Referência: Fiat Argo 1.0.</p>
-        </div>
-        <div class="ctl">
-          <div class="ctl-top"><span class="lbl">Como compraria?</span></div>
+          <div class="ctl-top"><span class="lbl">Como compraria?</span><button class="tip-i" type="button" data-tip="fin" aria-label="O que é isto?">i</button></div>
           <div class="seg-btns two" id="in-fin" role="group" aria-label="Forma de compra">
             <button type="button" data-v="0">À vista</button>
             <button type="button" data-v="1">Financiado</button>
           </div>
         </div>
+
+        <details class="assum" id="assum" open>
+          <summary><span class="as-t">Premissas da conta</span><em id="assum-n" class="as-n"></em><button class="tip-i" type="button" data-tip="premissas" aria-label="O que é isto?">i</button><i class="cb-arrow" aria-hidden="true"></i></summary>
+          <p class="as-lead" id="as-lead"></p>
+          <div class="seg-btns two modo" id="in-modo" role="group" aria-label="Base dos números">
+            <button type="button" data-v="mercado">Médias de mercado</button>
+            <button type="button" data-v="estudo">Premissas do estudo</button>
+          </div>
+          <div class="assum-body" id="assum-body"></div>
+          <button class="reset" id="reset" type="button" hidden>Voltar às médias</button>
+          <div class="fontes" id="fontes"></div>
+        </details>
+
         <div class="ctl ctl-mov">
-          <div class="ctl-top"><label for="in-mov">Mensalidade da Movida, por carro</label></div>
+          <div class="ctl-top"><label for="in-mov">Mensalidade da Movida, por carro</label><button class="tip-i" type="button" data-tip="mov" aria-label="O que é isto?">i</button></div>
           <div class="money"><span>R$</span><input id="in-mov" type="text" inputmode="decimal" placeholder="valor da sua proposta" autocomplete="off" /></div>
           <p class="hint">Opcional. Digite o valor da proposta para comparar.</p>
         </div>
       </div>
 
       <aside class="result" id="result" aria-live="polite">
-        <p class="r-tag">Frota própria</p>
+        <p class="r-tag">Frota própria <button class="tip-i tip-w" type="button" data-tip="resultado" aria-label="O que é isto?">i</button></p>
         <div class="r-main"><span id="r-mes">R$ 0,00</span></div>
         <p class="r-cap">por carro, por mês</p>
 
@@ -171,6 +208,19 @@
       </aside>
     </div>
 
+    <div class="passo" id="passo">
+      <h3 class="h-s">A conta, passo a passo <button class="tip-i" type="button" data-tip="passo" aria-label="O que é isto?">i</button></h3>
+      <p class="medio" id="medio"></p>
+      <div class="tbl-wrap">
+        <table class="math" id="math">
+          <thead><tr><th>Item</th><th>Como calculamos</th><th class="n">No prazo</th><th class="n">Por mês</th></tr></thead>
+          <tbody></tbody>
+          <tfoot></tfoot>
+        </table>
+      </div>
+      <p class="hint">Valores por carro. Combustível, multas, estacionamento e pedágios ficam de fora porque custam o mesmo comprando ou alugando.</p>
+    </div>
+
     <div class="mix">
       <h3 class="h-s">Para onde vai o dinheiro da sua frota</h3>
       <div class="stack" id="stack2"></div>
@@ -200,11 +250,13 @@
   </div>
 </footer>
 
+<div class="pop" id="pop" role="dialog" aria-live="polite" hidden></div>
 <div class="toast" id="toast" role="status" hidden>Link copiado</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
-<script src="data.js"></script>
-<script src="app.js"></script>
+<script src="data.js?v=4"></script>
+<script src="mercado.js?v=4"></script>
+<script src="app.js?v=4"></script>
 </body>
 </html>
