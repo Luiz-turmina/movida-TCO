@@ -433,7 +433,7 @@
     $("#medio").innerHTML = '<b>Antes das contas: o valor médio do carro.</b> O carro vale menos a cada mês, então para dinheiro parado, seguro e IPVA usamos a média entre o que você paga e o que recebe na venda: (' + brl(o.preco) + " + " + brl(c.fimValor) + ") ÷ 2 = <b>" + brl(c.medio) + '</b> <button class="tip-i" type="button" data-tip="medio" aria-label="O que é isto?">i</button>';
     $("#steps").innerHTML = rows.map(function (r, i) {
       return '<li class="st"><span class="st-n">' + (i + 1) + '</span><div class="st-main"><div class="st-h">' + esc(r.n) + '<button class="tip-i tip-s" type="button" data-tip="' + r.k + '" aria-label="O que é isto?">i</button>' + (r.ch ? '<span class="chg-dot">ajustado</span>' : "") + '</div><p class="st-what">' + esc(r.what) + '</p><div class="st-eq">' + r.eq.join("") + '</div><div class="st-bar"><i style="width:' + (c.total ? (r.v / c.total * 100).toFixed(1) : 0) + '%"></i></div></div>' +
-        '<div class="st-v"><b>' + brl(r.v / o.prazo) + '</b><small>por mês</small><em>' + brl(r.v) + " no prazo · " + pct(r.v / c.total, 0) + "</em></div></li>";
+        '<div class="st-v"><b>' + brl(r.v / o.prazo) + '</b><small>por mês</small><em>' + brl(r.v) + " no prazo<br>" + pct(r.v / c.total, 0) + " do total</em></div></li>";
     }).join("");
     $("#st-total").innerHTML =
       "<div><small>Total por carro, no prazo</small><b>" + brl(c.total) + "</b></div>" +
@@ -559,7 +559,19 @@
   spy.observe($("#custo")); spy.observe($("#conta"));
   if (fromLink) setTimeout(function () { var c = $("#conta"); if (c && !location.hash) window.scrollTo({ top: scrollY + c.getBoundingClientRect().top - 8 }); }, 50);
 
-  /* ---------- movimento ---------- */
+  /* ---------- entrada suave dos blocos (CSS + IntersectionObserver: o estado final é sempre o normal, nada fica deslocado) ---------- */
+  if (!REDUCE && "IntersectionObserver" in window) {
+    var rvEls = $$("#conta .eyebrow-o, #conta .h-l, #conta .sub, .guide-btn, .controls .ctl, .controls .assum, .result, .passo > .h-s, .passo-lead, .passo-empty, .st-0, .mix .h-s, #stack2, #legend2 .lg, .incl .h-s, .incl-grid li, .chips, .end");
+    var rvIO = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add("in"); rvIO.unobserve(e.target); } });
+    }, { rootMargin: "0px 0px -6% 0px", threshold: 0.01 });
+    rvEls.forEach(function (el) { el.classList.add("rv"); rvIO.observe(el); });
+    document.documentElement.classList.add("rv-on");
+    /* garantia: o que já estiver na tela depois de 4 s aparece mesmo que o observador não tenha disparado */
+    setTimeout(function () { rvEls.forEach(function (el) { var r = el.getBoundingClientRect(); if (r.top < innerHeight && r.bottom > 0) el.classList.add("in"); }); }, 4000);
+  }
+
+  /* ---------- movimento do topo (GSAP) ---------- */
   if (!HAS) return;
   var arc = $(".m-arc"), L = arc.getTotalLength();
   arc.style.strokeDasharray = L; arc.style.strokeDashoffset = L;
@@ -572,16 +584,4 @@
     .to(arc, { strokeDashoffset: 0, duration: 1.6, ease: "power2.inOut" }, 0.4)
     .from(".m-dot", { y: -260, duration: 1.3, ease: "bounce.out" }, 0.7);
   gsap.to(".motif", { yPercent: -20, ease: "none", scrollTrigger: { trigger: "#hero", start: "top top", end: "bottom top", scrub: true } });
-
-  function reveal(sel, vars, start) {
-    gsap.utils.toArray(sel).forEach(function (n) {
-      gsap.from(n, Object.assign({ y: 34, opacity: 0, duration: 0.9, ease: "power3.out", scrollTrigger: { trigger: n, start: start || "top 88%", once: true } }, vars || {}));
-    });
-  }
-  reveal("#conta .eyebrow-o, #conta .h-l, #conta .sub, .guide-btn, .passo-lead, .end");
-  gsap.from(".controls .ctl, .controls .assum", { y: 26, opacity: 0, duration: 0.7, stagger: 0.08, scrollTrigger: { trigger: ".calc", start: "top 85%", once: true } });
-  gsap.from(".result", { y: 40, opacity: 0, duration: 1, ease: "power3.out", scrollTrigger: { trigger: ".calc", start: "top 85%", once: true } });
-  gsap.from("#stack2", { clipPath: "inset(0 100% 0 0 round 14px)", duration: 1.4, ease: "power4.out", scrollTrigger: { trigger: "#stack2", start: "top 88%", once: true } });
-  gsap.from("#legend2 .lg", { y: 18, opacity: 0, duration: 0.6, stagger: 0.07, scrollTrigger: { trigger: "#legend2", start: "top 92%", once: true } });
-  gsap.from(".incl-grid li", { y: 34, opacity: 0, duration: 0.7, stagger: 0.09, scrollTrigger: { trigger: ".incl-grid", start: "top 88%", once: true } });
 })();

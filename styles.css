@@ -426,3 +426,20 @@ html.locked .gate{display:flex;position:fixed;inset:0;z-index:999;align-items:ce
 @media (max-width:760px){.st{grid-template-columns:36px 1fr}.st-v{grid-column:1/-1;text-align:left;display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}.st-total{grid-template-columns:1fr 1fr}}
 .chg-dot{margin-left:2px;padding:1px 8px;border-radius:99px;background:var(--tint-2);color:var(--orange-ink);font:700 10.5px var(--body);letter-spacing:.06em;text-transform:uppercase}
 .ac-mk .est.ve{background:#E7F4EA;color:#1E6B34}
+
+/* v6: entrada dos blocos (estado final sempre normal) e passo a passo alinhado */
+.rv-on .rv{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.2,1)}
+.rv-on .rv.in{opacity:1;transform:none}
+.rv-on .incl-grid li.rv:nth-child(3n+2){transition-delay:.08s}
+.rv-on .incl-grid li.rv:nth-child(3n){transition-delay:.16s}
+.rv-on .incl-grid li.rv.in:hover{transform:translateY(-4px);transition-delay:0s}
+.st{grid-template-columns:44px minmax(0,1fr) 168px}
+.st-v{min-width:0;display:flex;flex-direction:column;align-items:flex-end;gap:1px;padding-top:2px}
+.st-v b{line-height:1.05}
+.st-v em{display:block;font-size:12.5px;line-height:1.3;white-space:normal;text-align:right;margin-top:6px;max-width:15ch}
+.st-main{padding-right:6px}
+.st-eq{align-items:flex-end}
+.eq-t{flex:0 0 auto}
+@media (max-width:900px){.st{grid-template-columns:40px minmax(0,1fr) 150px}}
+@media (max-width:760px){.st{grid-template-columns:36px minmax(0,1fr)}.st-v{grid-column:1/-1;flex-direction:row;align-items:baseline;flex-wrap:wrap;gap:4px 12px;padding-top:6px;border-top:1px dashed var(--line);margin-top:6px}.st-v em{max-width:none;margin-top:0;text-align:left}}
+.incl-grid+.chips{margin-top:22px}
