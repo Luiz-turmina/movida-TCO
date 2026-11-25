@@ -173,7 +173,7 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.12)}
 .incl{margin-top:clamp(56px,9vh,96px)}
 .incl-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
 .incl-grid li{background:var(--tint);border-radius:18px;padding:22px 22px 24px;transition:transform .25s,background .25s}
-.incl-grid li:hover{transform:translateY(-4px);background:var(--tint-2)}
+.incl-grid li:hover{background:var(--tint-2)}
 .incl-grid .ck{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--orange);color:#fff;font-weight:800;font-size:16px;margin-bottom:14px}
 .incl-grid b{display:block;font-family:var(--display);font-weight:700;font-size:21px;letter-spacing:-.015em;line-height:1.15}
 .incl-grid span{display:block;margin-top:6px;color:var(--muted);font-size:15.5px;line-height:1.4}
@@ -428,11 +428,10 @@ html.locked .gate{display:flex;position:fixed;inset:0;z-index:999;align-items:ce
 .ac-mk .est.ve{background:#E7F4EA;color:#1E6B34}
 
 /* v6: entrada dos blocos (estado final sempre normal) e passo a passo alinhado */
-.rv-on .rv{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.2,1)}
-.rv-on .rv.in{opacity:1;transform:none}
+.rv-on .rv{opacity:0;transition:opacity .6s ease}
+.rv-on .rv.in{opacity:1}
 .rv-on .incl-grid li.rv:nth-child(3n+2){transition-delay:.08s}
 .rv-on .incl-grid li.rv:nth-child(3n){transition-delay:.16s}
-.rv-on .incl-grid li.rv.in:hover{transform:translateY(-4px);transition-delay:0s}
 .st{grid-template-columns:44px minmax(0,1fr) 168px}
 .st-v{min-width:0;display:flex;flex-direction:column;align-items:flex-end;gap:1px;padding-top:2px}
 .st-v b{line-height:1.05}
@@ -443,3 +442,17 @@ html.locked .gate{display:flex;position:fixed;inset:0;z-index:999;align-items:ce
 @media (max-width:900px){.st{grid-template-columns:40px minmax(0,1fr) 150px}}
 @media (max-width:760px){.st{grid-template-columns:36px minmax(0,1fr)}.st-v{grid-column:1/-1;flex-direction:row;align-items:baseline;flex-wrap:wrap;gap:4px 12px;padding-top:6px;border-top:1px dashed var(--line);margin-top:6px}.st-v em{max-width:none;margin-top:0;text-align:left}}
 .incl-grid+.chips{margin-top:22px}
+
+/* v7: caixa "antes das contas" em bloco normal; fim da página sem nada que se mova do lugar */
+.st-0{display:block;line-height:1.55}
+.st-0 b{display:inline}
+.st-0 .tip-i{vertical-align:middle;margin-left:4px}
+.incl-grid{align-items:stretch}
+.incl{overflow:visible}
+.incl-grid+.chips{margin-top:26px;position:relative}
+.end{position:relative}
+
+.st{grid-template-columns:44px minmax(0,1fr) 196px}
+.st-v em{max-width:none;white-space:nowrap}
+@media (max-width:900px){.st{grid-template-columns:40px minmax(0,1fr) 176px}}
+@media (max-width:760px){.st{grid-template-columns:36px minmax(0,1fr)}.st-v em{white-space:normal}}
